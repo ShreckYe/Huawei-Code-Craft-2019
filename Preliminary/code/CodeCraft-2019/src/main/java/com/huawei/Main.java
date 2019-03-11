@@ -1,11 +1,16 @@
 package com.huawei;
 
+import com.huawei.data.Car;
+import com.huawei.util.DataUtils;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.List;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class);
-    public static void main(String[] args)
-    {
+
+    public static void main(String[] args) throws IOException {
         if (args.length != 4) {
             logger.error("please input args: inputFilePath, resultFilePath");
             return;
@@ -21,6 +26,7 @@ public class Main {
 
         // TODO:read input files
         logger.info("start read input files");
+        List<Car> cars = DataUtils.readCars(carPath);
 
         // TODO: calc
 
