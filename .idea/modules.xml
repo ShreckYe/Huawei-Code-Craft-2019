@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Huawei-Code-Craft-2019.iml" filepath="$PROJECT_DIR$/.idea/Huawei-Code-Craft-2019.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Preliminary/Preliminary.iml" filepath="$PROJECT_DIR$/Preliminary/Preliminary.iml" />
     </modules>
   </component>
 </project>
