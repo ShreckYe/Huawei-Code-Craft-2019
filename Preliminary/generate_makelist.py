@@ -1,4 +1,5 @@
 import os
+import io
 
 
 def add_all_files(file_list: list, root: str, relative_path: str = ""):
@@ -16,7 +17,7 @@ add_all_files(source_file_list, "code/CodeCraft-2019/src/main/java")
 source_file_list = list(map(lambda path: os.path.join("main/java", path).replace("\\", "/"), source_file_list))
 print(source_file_list)
 
-with open("makelist.txt", mode="w", newline="\n") as file:
+with io.open("makelist.txt", mode="w", newline="\n") as file:
     for source_file in source_file_list:
         file.write(source_file)
         file.write("\n")
