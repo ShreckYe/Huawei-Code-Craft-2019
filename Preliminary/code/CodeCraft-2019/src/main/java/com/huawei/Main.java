@@ -4,11 +4,16 @@ import com.huawei.data.Answer;
 import com.huawei.data.Car;
 import com.huawei.data.Cross;
 import com.huawei.data.Road;
+import com.huawei.graph.CarRoadGraph;
+import com.huawei.graph.DirectedRoad;
 import com.huawei.util.DataUtils;
 import org.apache.log4j.Logger;
+import org.jgrapht.GraphPath;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class);
@@ -31,27 +36,21 @@ public class Main {
         logger.info("start read input files");
 
         List<Car> cars = DataUtils.readCars(carPath);
-        for (int i = 0; i < 5; i++) {
-            logger.info(cars.get(i));
-        }
         List<Cross> crosses = DataUtils.readCrosses(crossPath);
-        for (int i = 0; i < 5; i++) {
-            logger.info(crosses.get(i));
-        }
         List<Road> roads = DataUtils.readRoads(roadPath);
-        for (int i = 0; i < 5; i++) {
-            logger.info(roads.get(i));
-        }
-        List<Answer> answers = DataUtils.readAnswers(answerPath);
-        for (int i = 0; i < 5; i++) {
-            logger.info(answers.get(i));
-        }
 
         // TODO: calc
+        List<Answer> answers = new ArrayList<>(cars.size());
+        for (Car car : cars) {
+            CarRoadGraph carRoadGraph = new CarRoadGraph(crosses, roads, car);
+            GraphPath<Integer, DirectedRoad> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
+
+            answers.add(new Answer(car.getId(), car.getFrom(), shortestPath.getEdgeList().stream().map(DirectedRoad::getId).collect(Collectors.toList())));
+        }
 
         // TODO: write answer.txt
         logger.info("Start write output file");
-
+        DataUtils.writeAnswers(answers, answerPath);
         logger.info("End...");
     }
 }

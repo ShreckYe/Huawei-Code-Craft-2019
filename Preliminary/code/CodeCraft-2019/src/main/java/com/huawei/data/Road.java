@@ -2,9 +2,10 @@ package com.huawei.data;
 
 public class Road {
 
-    int id, length, speed, channel, from, to, isDuplex;
+    int id, length, speed, channel, from, to;
+    boolean isDuplex;
 
-    public Road(int id, int length, int speed, int channel, int from, int to, int isDuplex) {
+    public Road(int id, int length, int speed, int channel, int from, int to, boolean isDuplex) {
         this.id = id;
         this.length = length;
         this.speed = speed;
@@ -15,7 +16,35 @@ public class Road {
     }
 
     public Road(int[] tuple) {
-        this(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4], tuple[5], tuple[6]);
+        this(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4], tuple[5], tuple[6] != 0);
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
+
+    public int getChannel() {
+        return channel;
+    }
+
+    public int getFrom() {
+        return from;
+    }
+
+    public int getTo() {
+        return to;
+    }
+
+    public boolean isDuplex() {
+        return isDuplex;
     }
 
     @Override

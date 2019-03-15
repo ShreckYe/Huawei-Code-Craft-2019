@@ -16,6 +16,26 @@ public class Cross {
         this(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4]);
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public int getRoadIdNorth() {
+        return roadIdNorth;
+    }
+
+    public int getRoadIdEast() {
+        return roadIdEast;
+    }
+
+    public int getRoadIdSouth() {
+        return roadIdSouth;
+    }
+
+    public int getRoadIdWest() {
+        return roadIdWest;
+    }
+
     @Override
     public String toString() {
         return "Cross{" +
