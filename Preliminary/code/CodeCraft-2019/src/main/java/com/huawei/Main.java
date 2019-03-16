@@ -45,7 +45,7 @@ public class Main {
             CarRoadGraph carRoadGraph = new CarRoadGraph(crosses, roads, car);
             GraphPath<Integer, DirectedRoad> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
 
-            answers.add(new Answer(car.getId(), car.getFrom(), shortestPath.getEdgeList().stream().map(DirectedRoad::getId).collect(Collectors.toList())));
+            answers.add(new Answer(car.getId(), car.getPlanTime(), shortestPath.getEdgeList().stream().map(DirectedRoad::getId).collect(Collectors.toList())));
         }
 
         // TODO: write answer.txt
