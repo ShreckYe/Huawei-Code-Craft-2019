@@ -38,7 +38,7 @@ public class Cross {
 
     @Override
     public String toString() {
-        return "Cross{" +
+        return "GraphCross{" +
                 "id=" + id +
                 ", roadIdNorth=" + roadIdNorth +
                 ", roadIdEast=" + roadIdEast +

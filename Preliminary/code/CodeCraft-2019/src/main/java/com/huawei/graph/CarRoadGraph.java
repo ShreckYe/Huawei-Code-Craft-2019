@@ -13,8 +13,8 @@ import java.util.List;
 public class CarRoadGraph {
     private Graph<Integer, DirectedRoad> graph = new SimpleDirectedWeightedGraph<>(DirectedRoad.class);
 
-    /*public CarRoadGraph(List<Cross> crosses, List<Road> roads) {
-        for (Cross cross : crosses)
+    /*public CarRoadSimulationGraph(List<GraphCross> crosses, List<Road> roads) {
+        for (GraphCross cross : crosses)
             graph.addVertex(cross.getId());
         for (Road road : roads) {
             graph.addEdge(road.getFrom(), road.getTo(), new DirectedRoad(road.getId(), false));

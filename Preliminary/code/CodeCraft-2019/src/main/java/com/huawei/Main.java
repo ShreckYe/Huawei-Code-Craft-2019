@@ -1,18 +1,21 @@
 package com.huawei;
 
-import com.huawei.data.Answer;
-import com.huawei.data.Car;
-import com.huawei.data.Cross;
-import com.huawei.data.Road;
+import com.huawei.common.Pair;
+import com.huawei.data.*;
 import com.huawei.graph.CarRoadGraph;
 import com.huawei.graph.DirectedRoad;
-import com.huawei.util.DataUtils;
+import com.huawei.simulation.CarRoadSimulationGraph;
+import com.huawei.simulation.CarSimulationResult;
+import com.huawei.simulation.PathCrossTurns;
+import com.huawei.simulation.SimulationResult;
+import com.huawei.util.DataIoUtils;
 import org.apache.log4j.Logger;
 import org.jgrapht.GraphPath;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -35,22 +38,47 @@ public class Main {
         // TODO:read input files
         logger.info("start read input files");
 
-        List<Car> cars = DataUtils.readCars(carPath);
-        List<Cross> crosses = DataUtils.readCrosses(crossPath);
-        List<Road> roads = DataUtils.readRoads(roadPath);
+        List<Car> cars = DataIoUtils.readCars(carPath);
+        List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
+        List<Road> roads = DataIoUtils.readRoads(roadPath);
 
         // TODO: calc
-        List<Answer> answers = new ArrayList<>(cars.size());
+        CarRoadSimulationGraph simulationGraph = new CarRoadSimulationGraph(roads, crosses);
+
+        List<Pair<Car, Path>> carPathPairs = new ArrayList<>(cars.size());
         for (Car car : cars) {
             CarRoadGraph carRoadGraph = new CarRoadGraph(crosses, roads, car);
             GraphPath<Integer, DirectedRoad> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
+            Path path = new Path(shortestPath.getEdgeList().stream().mapToInt(DirectedRoad::getId).toArray());
 
-            answers.add(new Answer(car.getId(), car.getPlanTime(), shortestPath.getEdgeList().stream().map(DirectedRoad::getId).collect(Collectors.toList())));
+            carPathPairs.add(new Pair<>(car, path));
         }
+        List<Pair<Car, PathCrossTurns>> carPathCrossTurns = simulationGraph.convertCarPathListToCarTurnsList(carPathPairs);
+        SimulationResult simulationResult = simulationGraph.simulateAeap(carPathCrossTurns);
+        switch (simulationResult.getStatusCode()) {
+            case SimulationResult.STATUS_SUCCESS:
+                logger.info("AEAP simulation success");
+                break;
+            case SimulationResult.STATUS_DEADLOCK:
+                logger.info("AEAP simulation deadlock");
+                System.out.println(simulationResult);
+                return;
+            default:
+                throw new AssertionError();
+        }
+
+
+        Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
+                .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));
+        List<Answer> answers = carPathPairs.stream().map(carPathPair -> {
+            int carId = carPathPair.getFirst().getId();
+            return new Answer(carId, startTimes.get(carId), carPathPair.getSecond());
+        }).collect(Collectors.toList());
+
 
         // TODO: write answer.txt
         logger.info("Start write output file");
-        DataUtils.writeAnswers(answers, answerPath);
+        DataIoUtils.writeAnswers(answers, answerPath);
         logger.info("End...");
     }
 }

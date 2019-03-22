@@ -1,7 +1,13 @@
 package com.huawei.data;
 
-import java.util.List;
-
 public class Path {
-    List<Integer> roads;
+    private int[] roadIds;
+
+    public Path(int[] roadIds) {
+        this.roadIds = roadIds;
+    }
+
+    public int[] getRoadIds() {
+        return roadIds;
+    }
 }

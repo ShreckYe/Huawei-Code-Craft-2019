@@ -1,36 +1,27 @@
 package com.huawei.data;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class Answer {
-
     int carId, startTime;
+    Path path;
 
-    List<Integer> route;
-
-    public Answer(int carId, int startTime, List<Integer> roads) {
+    public Answer(int carId, int startTime, Path path) {
         this.carId = carId;
         this.startTime = startTime;
-        this.route = roads;
+        this.path = path;
     }
 
-    public Answer(int carId, int startTime, int[] tuple) {
-        this(carId, startTime, Arrays.stream(tuple).boxed().collect(Collectors.toList()));
-    }
+    public int[] toTuple() {
+        int[] roadIds = path.getRoadIds();
+        int numberOfRoadIds = roadIds.length;
+        int[] tuple = new int[2 + numberOfRoadIds];
 
-    public static Answer fromTuple(int[] tuple) {
-        return new Answer(tuple[0], tuple[1], Arrays.copyOfRange(tuple, 2, tuple.length - 1));
-    }
+        tuple[0] = carId;
+        tuple[1] = startTime;
 
-    public String toTuple() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("(").append(carId).append(", ").append(startTime);
-        for (int roadId : route)
-            stringBuilder.append(", ").append(roadId);
-        stringBuilder.append(")");
-        return stringBuilder.toString();
+        for (int i = 0; i < numberOfRoadIds; i++)
+            tuple[2 + i] = roadIds[i];
+
+        return tuple;
     }
 
     @Override
@@ -38,7 +29,7 @@ public class Answer {
         return "Answer{" +
                 "carId=" + carId +
                 ", startTime=" + startTime +
-                ", route=" + route +
+                ", path=" + path +
                 '}';
     }
 }
