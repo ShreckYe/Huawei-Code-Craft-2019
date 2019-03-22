@@ -6,8 +6,8 @@ cd $BASEDIR
 
 if [ ! -d code ] || [ ! -f makelist.txt ]
 then
-    echo "ERROR: $BASEDIR is not first valid directory of SDK_java for CodeCraft-2019."
-    echo "  Please run this script in first regular directory of SDK_java."
+    echo "ERROR: $BASEDIR is not a valid directory of SDK_java for CodeCraft-2019."
+    echo "  Please run this script in a regular directory of SDK_java."
     exit -1
 fi
 
