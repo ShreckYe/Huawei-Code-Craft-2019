@@ -78,7 +78,32 @@ public class CarRoadSimulationGraph {
                 channel.clear();
     }
 
-    private static boolean scheduleToNewRoad(SimulationRoadCar car, SimulationRoad newRoad, int maxNewPosition) {
+    private static void scheduleToRoadFront(SimulationRoadCar p1wCar, ArrayDeque<SimulationRoadCar> channel, SimulationRoad road, int newPosition) {
+        p1wCar.position = newPosition;
+        p1wCar.waiting = false;
+        //existsCrossCarScheduled = true;
+
+        // Scheduling following cars, code copied from above and adapted
+        Iterator<SimulationRoadCar> followingCars = channel.iterator();
+        followingCars.next();
+        SimulationRoadCar frontCar = p1wCar;
+        while (followingCars.hasNext()) {
+            SimulationRoadCar car = followingCars.next();
+            if (car.waiting) {
+                int maxNewPosition = car.position + min(road.speed, car.speed);
+                car.position = min(maxNewPosition, frontCar.position - 1);
+                car.waiting = false;
+                //existsCrossCarScheduled = true;
+
+                frontCar = car;
+            } else
+                break;
+        }
+    }
+
+    private enum ScheduleToNewRoadResult {SUCCESS, FRONT_CAR_WAITING, NO_MORE_SPACE}
+
+    private static ScheduleToNewRoadResult scheduleToNewRoad(SimulationRoadCar p1wCar, SimulationRoad newRoad, int maxNewPosition) {
         for (ArrayDeque<SimulationRoadCar> channel : newRoad.channels) {
             int newPosition;
             SimulationRoadCar frontCar = channel.peekLast();
@@ -90,18 +115,18 @@ public class CarRoadSimulationGraph {
             else if (!frontCar.waiting)
                 newPosition = frontCar.position - 1;
             else
-                break;
+                return ScheduleToNewRoadResult.FRONT_CAR_WAITING;
 
             if (newPosition >= 0) {
-                channel.addLast(car);
-                car.currentPathIndex++;
-                car.position = newPosition;
-                car.waiting = false;
-                return true;
+                channel.addLast(p1wCar);
+                p1wCar.currentPathIndex++;
+                p1wCar.position = newPosition;
+                p1wCar.waiting = false;
+                return ScheduleToNewRoadResult.SUCCESS;
             }
         }
 
-        return false;
+        return ScheduleToNewRoadResult.NO_MORE_SPACE;
     }
 
     // Simulate in the condition that cars start as early as possible
@@ -111,7 +136,7 @@ public class CarRoadSimulationGraph {
                 .sorted(Comparator.comparingInt((ToIntFunction<SimulationGarageCar>) car -> car.planTime)
                         .thenComparingInt(value -> value.id))
                 .collect(Collectors.toCollection(LinkedList::new));
-        List<SimulationRoadCar> roadCars = new ArrayList<>(carPaths.size());
+        HashMap<Integer, SimulationRoadCar> roadCars = new HashMap<>(carPaths.size());
 
         OptionalInt optionalMinPlanTime = garageCarsSortedByTimeAndId.stream().mapToInt(car -> car.planTime).min();
         if (!optionalMinPlanTime.isPresent())
@@ -138,11 +163,8 @@ public class CarRoadSimulationGraph {
                             if (maxNewPosition < road.length) {
                                 car.position = maxNewPosition;
                                 car.waiting = false;
-                                //frontCar = null;
-                            } else {
+                            } else
                                 car.waiting = true;
-                                frontCar = car;
-                            }
                         } else {
                             if (maxNewPosition < frontCar.position) {
                                 car.position = maxNewPosition;
@@ -152,9 +174,8 @@ public class CarRoadSimulationGraph {
                                 car.waiting = false;
                             } else
                                 car.waiting = true;
-
-                            frontCar = car;
                         }
+                        frontCar = car;
                     }
                 }
 
@@ -206,34 +227,20 @@ public class CarRoadSimulationGraph {
                                         v1 = min(road.speed, p1wCar.speed),
                                         v2 = min(roadOut.speed, p1wCar.speed);
                                 boolean b1 = s1P1 > v1, b2 = s1P1 > v2;
-                                if (b1 | b2) {
-                                    p1wCar.position = b1 ? p1wCar.position + v1 : road.length - 1;
-                                    p1wCar.waiting = false;
-                                    existsCrossCarScheduled = true;
-
-                                    // Scheduling following cars, code copied from above and adapted
-                                    Iterator<SimulationRoadCar> followingCars = p1wChannel.iterator();
-                                    followingCars.next();
-                                    SimulationRoadCar frontCar = p1wCar;
-                                    while (followingCars.hasNext()) {
-                                        SimulationRoadCar car = followingCars.next();
-                                        if (car.waiting) {
-                                            int maxNewPosition = car.position + min(road.speed, car.speed);
-                                            car.position = min(maxNewPosition, frontCar.position - 1);
-                                            car.waiting = false;
-                                            existsCrossCarScheduled = true;
-
-                                            frontCar = car;
-                                        } else
-                                            break;
-                                    }
-                                } else {
+                                if (b1)
+                                    scheduleToRoadFront(p1wCar, p1wChannel, road, p1wCar.position + v1);
+                                else if (b2)
+                                    scheduleToRoadFront(p1wCar, p1wChannel, road, road.length - 1);
+                                else {
                                     // Schedule to next road
                                     int maxNewPosition = v2 - s1P1;
-                                    if (scheduleToNewRoad(p1wCar, roadOut, maxNewPosition)) {
+                                    ScheduleToNewRoadResult result = scheduleToNewRoad(p1wCar, roadOut, maxNewPosition);
+                                    if (result == ScheduleToNewRoadResult.SUCCESS) {
                                         p1wChannel.removeFirst();
                                         existsCrossCarScheduled = true;
-                                    } else
+                                    } else if (result == ScheduleToNewRoadResult.NO_MORE_SPACE)
+                                        scheduleToRoadFront(p1wCar, p1wChannel, road, road.length - 1);
+                                    else
                                         break;
                                 }
                             }
@@ -245,15 +252,18 @@ public class CarRoadSimulationGraph {
                 }
             } while (existsCarScheduled);
 
-            if (roadCars.stream().anyMatch(car -> car.waiting)) {
+            if (roadCars.values().stream().anyMatch(car -> car.waiting)) {
                 // TODO: remove debug code
                 System.out.println("Deadlock cars: \ncarId currentPathIndex position roadId reverseDirection channelNumber");
-                roadCars.stream().filter(car -> car.waiting).forEach(car -> {
+                roadCars.values().stream().filter(car -> car.waiting).forEach(car -> {
                     Pair<SimulationRoad, IntObjPair<ArrayDeque<SimulationRoadCar>>> roadChannelPair = roads.values().stream()
                             .flatMap(road -> IntStream.range(0, road.numberOfChannels).mapToObj(i -> new Pair<>(road, new IntObjPair<>(i, road.channels.get(i)))))
                             .filter(pair -> pair.getSecond().getSecond().contains(car)).findFirst().get();
-                    System.out.println(car.carId + " " + car.currentPathIndex + " " + car.position + " " + roadChannelPair.getFirst().directedRoadId.getRoadId() +" " + roadChannelPair.getFirst().directedRoadId.isReverseDirection() + " " + roadChannelPair.getSecond().getFirst());
+                    System.out.println(car.carId + " " + car.currentPathIndex + " " + car.position + " " + roadChannelPair.getFirst().directedRoadId.getRoadId() + " " + roadChannelPair.getFirst().directedRoadId.isReverseDirection() + " " + roadChannelPair.getSecond().getFirst());
                 });
+                System.out.println("\n\nAll roads:");
+                for (SimulationRoad road : roads.values())
+                    VisualizationUtils.printRoad(road);
                 return SimulationResult.newDeadlockInstance(time + 1, -1, carSimulationResults);
             }
 
@@ -268,9 +278,9 @@ public class CarRoadSimulationGraph {
                 int speed = min(road.speed, garageCar.speed);
 
                 SimulationRoadCar roadCar = new SimulationRoadCar(garageCar.id, garageCar.speed, garageCar.path, time);
-                if (scheduleToNewRoad(roadCar, road, speed - 1)) {
+                if (scheduleToNewRoad(roadCar, road, speed - 1) == ScheduleToNewRoadResult.SUCCESS) {
                     garageCarIterator.remove();
-                    roadCars.add(roadCar);
+                    roadCars.put(roadCar.carId, roadCar);
                 }
             }
         }

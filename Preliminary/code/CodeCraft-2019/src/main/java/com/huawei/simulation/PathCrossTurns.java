@@ -1,5 +1,7 @@
 package com.huawei.simulation;
 
+import java.util.Arrays;
+
 public class PathCrossTurns {
     // First direction choice at the cross garage
     int firstDirection;
@@ -17,5 +19,13 @@ public class PathCrossTurns {
 
     public CrossTurn[] getCrossTurns() {
         return crossTurns;
+    }
+
+    @Override
+    public String toString() {
+        return "PathCrossTurns{" +
+                "firstDirection=" + firstDirection +
+                ", crossTurns=" + Arrays.toString(crossTurns) +
+                '}';
     }
 }

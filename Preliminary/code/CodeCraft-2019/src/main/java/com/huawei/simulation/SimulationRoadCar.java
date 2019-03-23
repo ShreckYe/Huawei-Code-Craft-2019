@@ -1,11 +1,13 @@
 package com.huawei.simulation;
 
 class SimulationRoadCar {
-    int carId,
-            speed,
-            position;
-    PathCrossTurns path;
+    final int carId,
+            speed;
+    int position;
+    final static int UNINITILIAZED_POSITION = Integer.MAX_VALUE;
+    final PathCrossTurns path;
     int currentPathIndex;
+    final static int INITIAL_PATH_INDEX = -1;
 
     int startTime;
 
@@ -22,9 +24,8 @@ class SimulationRoadCar {
         this.waiting = waiting;
     }
 
-
     SimulationRoadCar(int carId, int speed, PathCrossTurns path, int startTime) {
-        this(carId, speed, -1, path, 0, startTime, false);
+        this(carId, speed, UNINITILIAZED_POSITION, path, INITIAL_PATH_INDEX, startTime, false);
     }
 
     /*private void scheduleTo(int newPosition) {
@@ -34,5 +35,18 @@ class SimulationRoadCar {
 
     CrossTurn getCurrentTurn() {
         return currentPathIndex == path.crossTurns.length ? null : path.crossTurns[currentPathIndex];
+    }
+
+    @Override
+    public String toString() {
+        return "SimulationRoadCar{" +
+                "carId=" + carId +
+                ", speed=" + speed +
+                ", position=" + position +
+                ", path=" + path +
+                ", currentPathIndex=" + currentPathIndex +
+                ", startTime=" + startTime +
+                ", waiting=" + waiting +
+                '}';
     }
 }

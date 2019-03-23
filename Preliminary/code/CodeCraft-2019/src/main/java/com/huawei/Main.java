@@ -57,16 +57,17 @@ public class Main {
         SimulationResult simulationResult = simulationGraph.simulateAeap(carPathCrossTurns);
         switch (simulationResult.getStatusCode()) {
             case SimulationResult.STATUS_SUCCESS:
-                logger.info("AEAP simulation success");
                 break;
             case SimulationResult.STATUS_DEADLOCK:
                 logger.info("AEAP simulation deadlock");
-                System.out.println(simulationResult);
+                logger.info(simulationResult);
                 return;
             default:
                 throw new AssertionError();
         }
 
+
+        logger.info("AEAP simulation success");
 
         Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
                 .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));
