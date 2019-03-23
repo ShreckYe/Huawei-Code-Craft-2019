@@ -7,6 +7,7 @@ import com.huawei.data.Car;
 import com.huawei.data.Cross;
 import com.huawei.data.Path;
 import com.huawei.data.Road;
+import com.huawei.graph.DirectedRoadId;
 
 import java.util.*;
 import java.util.function.Function;
@@ -19,199 +20,28 @@ import static com.huawei.simulation.SimulationUtils.getDirectionOut;
 import static java.lang.Math.min;
 
 public class CarRoadSimulationGraph {
-    private static class RoadKey {
-        private int roadId;
-        private boolean reverseDirection;
-
-        private RoadKey(int roadId, boolean reverseDirection) {
-            this.roadId = roadId;
-            this.reverseDirection = reverseDirection;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            RoadKey roadKey = (RoadKey) o;
-
-            if (roadId != roadKey.roadId) return false;
-            return reverseDirection == roadKey.reverseDirection;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = roadId;
-            result = 31 * result + (reverseDirection ? 1 : 0);
-            return result;
-        }
-    }
-
-    private static class SimulationRoad {
-        private RoadKey roadKey;
-        private int length;
-        private int speed;
-
-        private int numberOfChannels;
-        // Sorted by position in descending order
-        private ArrayList<ArrayDeque<SimulationRoadCar>> channels;
-        private SimulationCross from, to;
-
-        private SimulationRoad(RoadKey roadKey, int length, int speed, int numberOfChannels, SimulationCross from, SimulationCross to) {
-            this.roadKey = roadKey;
-            this.length = length;
-            this.speed = speed;
-            this.numberOfChannels = numberOfChannels;
-            this.channels = new ArrayList<>(numberOfChannels);
-            for (int i = 0; i < numberOfChannels; i++) channels.add(new ArrayDeque<>());
-            this.from = from;
-            this.to = to;
-        }
-
-        private SimulationRoad(RoadKey roadKey, int length, int speed, int numberOfChannels) {
-            this(roadKey, length, speed, numberOfChannels, null, null);
-        }
-
-        /**
-         * Returns the cars in the first row where there are cars
-         */
-        Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>> getPriorityOneWaitingCarChannelPair() {
-            List<Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>>> firstRowWaitingCarChannelPairs = channels.stream().map(channel -> {
-                SimulationRoadCar first = channel.peekFirst();
-                return first == null ? null : first.waiting ? new Pair<>(first, channel) : null;
-            }).filter(Objects::nonNull).collect(Collectors.toList());
-
-            if (firstRowWaitingCarChannelPairs.isEmpty())
-                return null;
-
-            @SuppressWarnings("OptionalGetWithoutIsPresent") int priorityOnePosition = firstRowWaitingCarChannelPairs.stream()
-                    .mapToInt(carChannelPair -> carChannelPair.getFirst().position)
-                    .max().getAsInt();
-            @SuppressWarnings("OptionalGetWithoutIsPresent") Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>> priorityOneWaitingCarChannelPair = firstRowWaitingCarChannelPairs.stream()
-                    .filter(carChannelPair -> carChannelPair.getFirst().position == priorityOnePosition)
-                    .findFirst().get();
-
-            return priorityOneWaitingCarChannelPair;
-        }
-    }
-
-
-    private static class SimulationGarageCar {
-        // Unknown start time
-        int id, from, to, speed, planTime;
-        PathCrossTurns path;
-
-        private SimulationGarageCar(int id, int from, int to, int speed, int planTime, PathCrossTurns path) {
-            this.id = id;
-            this.from = from;
-            this.to = to;
-            this.speed = speed;
-            this.planTime = planTime;
-            this.path = path;
-        }
-
-        private SimulationGarageCar(Car car, PathCrossTurns path) {
-            this(car.getId(), car.getFrom(), car.getTo(), car.getSpeed(), car.getPlanTime(), path);
-        }
-    }
-
-    private static class SimulationRoadCar {
-        private int carId,
-                speed,
-                position;
-        private PathCrossTurns path;
-        private int currentPathIndex;
-
-        private int startTime;
-
-        // Indicates whether the car is waiting to be scheduled
-        private boolean waiting;
-
-        SimulationRoadCar(int carId, int speed, int position, PathCrossTurns path, int currentPathIndex, int startTime, boolean waiting) {
-            this.carId = carId;
-            this.speed = speed;
-            this.position = position;
-            this.path = path;
-            this.currentPathIndex = currentPathIndex;
-            this.startTime = startTime;
-            this.waiting = waiting;
-        }
-
-
-        SimulationRoadCar(int carId, int speed, PathCrossTurns path, int startTime) {
-            this(carId, speed, -1, path, 0, startTime, false);
-        }
-
-        /*private void scheduleTo(int newPosition) {
-            waiting = false;
-            position = newPosition;
-        }*/
-
-        CrossTurn getCurrentTurn() {
-            return currentPathIndex == path.crossTurns.length ? null : path.crossTurns[currentPathIndex];
-        }
-    }
-
-    private static class SimulationRoadWithCrossDirection {
-        SimulationRoad road;
-        // See CrossDirections
-        // Can be either direction in (which is opposite to actual driving direction) or direction out
-        int direction;
-
-        public SimulationRoadWithCrossDirection(SimulationRoad road, int direction) {
-            this.road = road;
-            this.direction = direction;
-        }
-    }
-
-    private static class SimulationCross {
-        private int crossId;
-        // 4 roads in clockwise order from north to west
-        private SimulationRoad[] roadsIn, roadsOut;
-        // Not null roads sorted by road ID
-        private List<SimulationRoadWithCrossDirection> roadsInSortedById, roadsOutSortedById;
-
-        private SimulationCross(int crossId, SimulationRoad[] roadsIn, SimulationRoad[] roadsOut) {
-            this.crossId = crossId;
-            if (roadsIn == null || roadsIn.length != 4)
-                throw new IllegalArgumentException();
-            this.roadsIn = roadsIn;
-            roadsInSortedById = IntStream.range(0, 4)
-                    .filter(direction -> roadsIn[direction] != null)
-                    .mapToObj(direction -> new SimulationRoadWithCrossDirection(roadsIn[direction], direction))
-                    .sorted(Comparator.comparingInt(road -> road.road.roadKey.roadId))
-                    .collect(Collectors.toList());
-            if (roadsOut == null || roadsOut.length != 4)
-                throw new IllegalArgumentException();
-            this.roadsOut = roadsOut;
-            roadsOutSortedById = IntStream.range(0, 4)
-                    .filter(direction -> roadsOut[direction] != null)
-                    .mapToObj(direction -> new SimulationRoadWithCrossDirection(roadsOut[direction], direction))
-                    .sorted(Comparator.comparingInt(road -> road.road.roadKey.roadId))
-                    .collect(Collectors.toList());
-        }
-    }
-
-    Map<RoadKey, SimulationRoad> roads;
+    List<SimulationRoad> roadList;
+    Map<DirectedRoadId, SimulationRoad> roads;
     // Garage cars ordered by plan time
+    List<Cross> crossList;
     Map<Integer, SimulationCross> crosses;
 
     private SimulationRoad getRoadInFromCross(int crossId, Map<Integer, Road> roadRecordMap, int roadId) {
-        return roadId == -1 ? null : roads.get(new RoadKey(roadId, crossId != roadRecordMap.get(roadId).getTo()));
+        return roadId == -1 ? null : roads.get(new DirectedRoadId(roadId, crossId != roadRecordMap.get(roadId).getTo()));
     }
 
     private SimulationRoad getRoadOutFromCross(int crossId, Map<Integer, Road> roadRecordMap, int roadId) {
-        return roadId == -1 ? null : roads.get(new RoadKey(roadId, crossId != roadRecordMap.get(roadId).getFrom()));
+        return roadId == -1 ? null : roads.get(new DirectedRoadId(roadId, crossId != roadRecordMap.get(roadId).getFrom()));
     }
 
     public CarRoadSimulationGraph(List<Road> roadRecords, List<Cross> crossRecords) {
         roads = new HashMap<>(roadRecords.size());
         for (Road roadRecord : roadRecords) {
-            RoadKey roadKey = new RoadKey(roadRecord.getId(), false);
-            roads.put(roadKey, new SimulationRoad(roadKey, roadRecord.getLength(), roadRecord.getSpeed(), roadRecord.getChannel()));
+            DirectedRoadId directedRoadId = new DirectedRoadId(roadRecord.getId(), false);
+            roads.put(directedRoadId, new SimulationRoad(directedRoadId, roadRecord.getLength(), roadRecord.getSpeed(), roadRecord.getChannel()));
             if (roadRecord.isDuplex()) {
-                RoadKey reverseRoadKey = new RoadKey(roadRecord.getId(), true);
-                roads.put(reverseRoadKey, new SimulationRoad(roadKey, roadRecord.getLength(), roadRecord.getSpeed(), roadRecord.getChannel()));
+                DirectedRoadId reverseDirectedRoadId = new DirectedRoadId(roadRecord.getId(), true);
+                roads.put(reverseDirectedRoadId, new SimulationRoad(reverseDirectedRoadId, roadRecord.getLength(), roadRecord.getSpeed(), roadRecord.getChannel()));
             }
         }
 
@@ -422,7 +252,7 @@ public class CarRoadSimulationGraph {
                     Pair<SimulationRoad, IntObjPair<ArrayDeque<SimulationRoadCar>>> roadChannelPair = roads.values().stream()
                             .flatMap(road -> IntStream.range(0, road.numberOfChannels).mapToObj(i -> new Pair<>(road, new IntObjPair<>(i, road.channels.get(i)))))
                             .filter(pair -> pair.getSecond().getSecond().contains(car)).findFirst().get();
-                    System.out.println(car.carId + " " + car.currentPathIndex + " " + car.position + " " + roadChannelPair.getFirst().roadKey.roadId +" " + roadChannelPair.getFirst().roadKey.reverseDirection + " " + roadChannelPair.getSecond().getFirst());
+                    System.out.println(car.carId + " " + car.currentPathIndex + " " + car.position + " " + roadChannelPair.getFirst().directedRoadId.getRoadId() +" " + roadChannelPair.getFirst().directedRoadId.isReverseDirection() + " " + roadChannelPair.getSecond().getFirst());
                 });
                 return SimulationResult.newDeadlockInstance(time + 1, -1, carSimulationResults);
             }
@@ -455,7 +285,7 @@ public class CarRoadSimulationGraph {
         CrossTurn[] crossTurns = new CrossTurn[crossTurnNumber];
 
         SimulationCross cross = crosses.get(from);
-        int firstDirection = ArrayUtils.indexOf(cross.roadsOut, road -> road != null && road.roadKey.roadId == roadIds[0]);
+        int firstDirection = ArrayUtils.indexOf(cross.roadsOut, road -> road != null && road.directedRoadId.getRoadId() == roadIds[0]);
 
         int directionOut = firstDirection;
         for (int i = 0; i < crossTurnNumber; i++) {
@@ -463,9 +293,9 @@ public class CarRoadSimulationGraph {
             cross = cross.roadsOut[directionOut].to;
 
             int roadIdIn = roadIds[i];
-            int directionIn = ArrayUtils.indexOf(cross.roadsIn, road -> road != null && road.roadKey.roadId == roadIdIn);
+            int directionIn = ArrayUtils.indexOf(cross.roadsIn, road -> road != null && road.directedRoadId.getRoadId() == roadIdIn);
             int roadIdOut = roadIds[i + 1];
-            directionOut = ArrayUtils.indexOf(cross.roadsOut, road -> road != null && road.roadKey.roadId == roadIdOut);
+            directionOut = ArrayUtils.indexOf(cross.roadsOut, road -> road != null && road.directedRoadId.getRoadId() == roadIdOut);
 
             crossTurns[i] = CrossTurn.getWithDirectionOffset(directionOut - directionIn);
         }

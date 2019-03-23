@@ -3,7 +3,7 @@ package com.huawei;
 import com.huawei.common.Pair;
 import com.huawei.data.*;
 import com.huawei.graph.CarRoadGraph;
-import com.huawei.graph.DirectedRoad;
+import com.huawei.graph.DirectedRoadId;
 import com.huawei.simulation.CarRoadSimulationGraph;
 import com.huawei.simulation.CarSimulationResult;
 import com.huawei.simulation.PathCrossTurns;
@@ -48,8 +48,8 @@ public class Main {
         List<Pair<Car, Path>> carPathPairs = new ArrayList<>(cars.size());
         for (Car car : cars) {
             CarRoadGraph carRoadGraph = new CarRoadGraph(crosses, roads, car);
-            GraphPath<Integer, DirectedRoad> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
-            Path path = new Path(shortestPath.getEdgeList().stream().mapToInt(DirectedRoad::getId).toArray());
+            GraphPath<Integer, DirectedRoadId> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
+            Path path = new Path(shortestPath.getEdgeList().stream().mapToInt(DirectedRoadId::getRoadId).toArray());
 
             carPathPairs.add(new Pair<>(car, path));
         }
