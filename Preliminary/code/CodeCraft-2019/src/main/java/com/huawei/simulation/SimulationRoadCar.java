@@ -1,11 +1,13 @@
 package com.huawei.simulation;
 
+import java.util.NoSuchElementException;
+
 class SimulationRoadCar {
     final int carId,
             speed;
     int position;
     final static int UNINITILIAZED_POSITION = Integer.MAX_VALUE;
-    final PathCrossTurns path;
+    final TurnPath turnPath;
     int currentPathIndex;
     final static int INITIAL_PATH_INDEX = -1;
 
@@ -14,18 +16,18 @@ class SimulationRoadCar {
     // Indicates whether the car is waiting to be scheduled
     boolean waiting;
 
-    SimulationRoadCar(int carId, int speed, int position, PathCrossTurns path, int currentPathIndex, int startTime, boolean waiting) {
+    SimulationRoadCar(int carId, int speed, int position, TurnPath turnPath, int currentPathIndex, int startTime, boolean waiting) {
         this.carId = carId;
         this.speed = speed;
         this.position = position;
-        this.path = path;
+        this.turnPath = turnPath;
         this.currentPathIndex = currentPathIndex;
         this.startTime = startTime;
         this.waiting = waiting;
     }
 
-    SimulationRoadCar(int carId, int speed, PathCrossTurns path, int startTime) {
-        this(carId, speed, UNINITILIAZED_POSITION, path, INITIAL_PATH_INDEX, startTime, false);
+    SimulationRoadCar(int carId, int speed, TurnPath turnPath, int startTime) {
+        this(carId, speed, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, false);
     }
 
     /*private void scheduleTo(int newPosition) {
@@ -33,8 +35,12 @@ class SimulationRoadCar {
         position = newPosition;
     }*/
 
-    CrossTurn getCurrentTurn() {
-        return currentPathIndex == path.crossTurns.length ? null : path.crossTurns[currentPathIndex];
+    CrossTurn getCurrentTurn() throws NoSuchElementException {
+        try {
+            return currentPathIndex == turnPath.crossTurns.length ? null : turnPath.crossTurns[currentPathIndex];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new NoSuchElementException();
+        }
     }
 
     @Override
@@ -43,7 +49,7 @@ class SimulationRoadCar {
                 "carId=" + carId +
                 ", speed=" + speed +
                 ", position=" + position +
-                ", path=" + path +
+                ", turnPath=" + turnPath +
                 ", currentPathIndex=" + currentPathIndex +
                 ", startTime=" + startTime +
                 ", waiting=" + waiting +

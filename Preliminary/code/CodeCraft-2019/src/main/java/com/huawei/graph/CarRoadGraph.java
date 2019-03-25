@@ -13,7 +13,7 @@ import java.util.List;
 public class CarRoadGraph {
     private Graph<Integer, DirectedRoadId> graph = new SimpleDirectedWeightedGraph<>(DirectedRoadId.class);
 
-    /*public CarRoadSimulationGraph(List<GraphCross> crosses, List<Road> roads) {
+    /*public CarRoadGraph(List<GraphCross> crosses, List<Road> roads) {
         for (GraphCross cross : crosses)
             graph.addVertex(cross.getId());
         for (Road road : roads) {

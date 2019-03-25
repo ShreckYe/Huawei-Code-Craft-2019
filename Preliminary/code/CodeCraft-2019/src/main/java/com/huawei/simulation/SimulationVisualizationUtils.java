@@ -6,8 +6,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
-class VisualizationUtils {
-    private VisualizationUtils() {
+class SimulationVisualizationUtils {
+    private SimulationVisualizationUtils() {
     }
 
     static void printRoad(SimulationRoad road) {
@@ -62,5 +62,14 @@ class VisualizationUtils {
             System.out.println(waitingCar);
 
         System.out.println();
+    }
+
+    static void printRoads(Iterable<SimulationRoad> roads) {
+        for (SimulationRoad road : roads)
+            printRoad(road);
+    }
+
+    static void printDeadlockRing(SimulationRoadCar car, SimulationRoad road) {
+        // TODO
     }
 }

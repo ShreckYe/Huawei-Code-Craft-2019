@@ -16,4 +16,20 @@ public class IntObjPair<B> {
     public B getSecond() {
         return second;
     }
+
+    public void setFirst(int first) {
+        this.first = first;
+    }
+
+    public void setSecond(B second) {
+        this.second = second;
+    }
+
+    @Override
+    public String toString() {
+        return "IntObjPair{" +
+                "first=" + first +
+                ", second=" + second +
+                '}';
+    }
 }

@@ -1,13 +1,14 @@
 package com.huawei;
 
+import com.huawei.common.IntObjPair;
 import com.huawei.common.Pair;
 import com.huawei.data.*;
 import com.huawei.graph.CarRoadGraph;
 import com.huawei.graph.DirectedRoadId;
-import com.huawei.simulation.CarRoadSimulationGraph;
-import com.huawei.simulation.CarSimulationResult;
-import com.huawei.simulation.PathCrossTurns;
-import com.huawei.simulation.SimulationResult;
+import com.huawei.optimization.InitialSolutions;
+import com.huawei.simulation.IdealPathResult;
+import com.huawei.simulation.TrafficSimulationGraph;
+import com.huawei.simulation.TurnPath;
 import com.huawei.util.DataIoUtils;
 import org.apache.log4j.Logger;
 import org.jgrapht.GraphPath;
@@ -15,7 +16,6 @@ import org.jgrapht.GraphPath;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -43,37 +43,39 @@ public class Main {
         List<Road> roads = DataIoUtils.readRoads(roadPath);
 
         // TODO: calc
-        CarRoadSimulationGraph simulationGraph = new CarRoadSimulationGraph(roads, crosses);
+        TrafficSimulationGraph simulationGraph = new TrafficSimulationGraph(roads, crosses);
 
-        List<Pair<Car, Path>> carPathPairs = new ArrayList<>(cars.size());
+        List<Pair<Car, IdealPathResult>> carIdealPathResults = new ArrayList<>(cars.size());
         for (Car car : cars) {
             CarRoadGraph carRoadGraph = new CarRoadGraph(crosses, roads, car);
             GraphPath<Integer, DirectedRoadId> shortestPath = carRoadGraph.dijkstraShortestPath(car.getFrom(), car.getTo());
             Path path = new Path(shortestPath.getEdgeList().stream().mapToInt(DirectedRoadId::getRoadId).toArray());
 
-            carPathPairs.add(new Pair<>(car, path));
+            carIdealPathResults.add(new Pair<>(car, new IdealPathResult(car.getPlanTime() + shortestPath.getWeight(), path)));
         }
-        List<Pair<Car, PathCrossTurns>> carPathCrossTurns = simulationGraph.convertCarPathListToCarTurnsList(carPathPairs);
-        SimulationResult simulationResult = simulationGraph.simulateAeap(carPathCrossTurns);
+        /*List<Pair<Car, TurnPath>> carPathCrossTurns = simulationGraph.convertCarPathToCarTurnPath(carPathPairs);
+        SimulationResult simulationResult = simulationGraph.simulateAeapWithPlanTimes(carPathCrossTurns);
         switch (simulationResult.getStatusCode()) {
             case SimulationResult.STATUS_SUCCESS:
+                logger.info("AEAP simulation success");
                 break;
             case SimulationResult.STATUS_DEADLOCK:
-                logger.info("AEAP simulation deadlock");
+                logger.info("AEAP simulation deadlock at: " + simulationResult.getSystemScheduleTime());
                 logger.info(simulationResult);
-                return;
+                throw new RuntimeException("Deadlock TODO");
             default:
                 throw new AssertionError();
         }
 
-
-        logger.info("AEAP simulation success");
-
         Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
-                .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));
-        List<Answer> answers = carPathPairs.stream().map(carPathPair -> {
-            int carId = carPathPair.getFirst().getId();
-            return new Answer(carId, startTimes.get(carId), carPathPair.getSecond());
+                .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));*/
+        List<Pair<Car, IntObjPair<TurnPath>>> carStartTimeTurnPaths = InitialSolutions.determineSuccessfulStartTimesWithPath(simulationGraph, carIdealPathResults);
+
+        List<Answer> answers = carStartTimeTurnPaths.stream().map(carStartTimeTurnPath -> {
+            Car car = carStartTimeTurnPath.getFirst();
+            return new Answer(car.getId(),
+                    carStartTimeTurnPath.getSecond().getFirst(),
+                    simulationGraph.convertTurnPathToPath(car.getFrom(), carStartTimeTurnPath.getSecond().getSecond()));
         }).collect(Collectors.toList());
 
 

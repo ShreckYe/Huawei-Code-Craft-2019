@@ -4,19 +4,19 @@ import com.huawei.data.Car;
 
 class SimulationGarageCar {
     // Unknown start time
-    int id, from, to, speed, planTime;
-    PathCrossTurns path;
+    int id, from, to, speed, startTime;
+    TurnPath path;
 
-    SimulationGarageCar(int id, int from, int to, int speed, int planTime, PathCrossTurns path) {
+    SimulationGarageCar(int id, int from, int to, int speed, int startTime, TurnPath path) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.speed = speed;
-        this.planTime = planTime;
+        this.startTime = startTime;
         this.path = path;
     }
 
-    SimulationGarageCar(Car car, PathCrossTurns path) {
-        this(car.getId(), car.getFrom(), car.getTo(), car.getSpeed(), car.getPlanTime(), path);
+    SimulationGarageCar(Car car, int startTime, TurnPath path) {
+        this(car.getId(), car.getFrom(), car.getTo(), car.getSpeed(), startTime, path);
     }
 }
