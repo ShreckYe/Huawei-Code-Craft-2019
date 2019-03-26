@@ -1,13 +1,12 @@
-package com.huawei;
+package com.huawei.graph;
 
 import com.huawei.data.Path;
-
-import java.util.List;
 
 public final class DijkstraAlgorithm {
     private DijkstraAlgorithm() {
     }
+
     public final static Path dijkstraShortestPath(int source, int dest) {
-        throw new RuntimeException();
+        throw new RuntimeException("Not implemented");
     }
 }

@@ -8,4 +8,8 @@ public class MathUtils {
         int r = x % y;
         return r >= 0 ? r : r + y;
     }
+
+    public static int ceilDivBy2(int x) {
+        return (x + 1) / 2;
+    }
 }

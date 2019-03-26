@@ -71,7 +71,7 @@ public class TrafficSimulationGraph {
         }
     }
 
-    public void clearSimulation() {
+    private void clearSimulation() {
         for (SimulationRoad road : roads.values())
             for (ArrayDeque<SimulationRoadCar> channel : road.channels)
                 channel.clear();
@@ -133,19 +133,19 @@ public class TrafficSimulationGraph {
     }*/
 
     // Simulate in the condition that a car starts as early as possible if it can't start at start time
-    private SimulationResult simulate(List<Pair<Car, IntObjPair<TurnPath>>> carStartTimePaths, boolean failOnCantStart) {
-        LinkedList<SimulationGarageCar> garageCarsSortedByTimeAndId = carStartTimePaths.stream()
-                .map(carPath -> new SimulationGarageCar(carPath.getFirst(), carPath.getSecond().getFirst(), carPath.getSecond().getSecond()))
+    private FullSimulationResult simulate(List<CarStartTimeTurnPathSingleSolution> singleSolutions, boolean failOnCantStart) {
+        LinkedList<SimulationGarageCar> garageCarsSortedByTimeAndId = singleSolutions.stream()
+                .map(solution -> new SimulationGarageCar(solution.car, solution.startTime, solution.turnPath))
                 .sorted(Comparator.comparingInt((ToIntFunction<SimulationGarageCar>) car -> car.startTime)
                         .thenComparingInt(value -> value.id))
                 .collect(Collectors.toCollection(LinkedList::new));
-        HashMap<Integer, SimulationRoadCar> roadCars = new HashMap<>(carStartTimePaths.size());
+        HashMap<Integer, SimulationRoadCar> roadCars = new HashMap<>(singleSolutions.size());
 
         OptionalInt optionalMinPlanTime = garageCarsSortedByTimeAndId.stream().mapToInt(car -> car.startTime).min();
         if (!optionalMinPlanTime.isPresent())
-            return SimulationResult.newSuccessInstance(0, 0, Collections.emptyList());
+            return FullSimulationResult.newSuccessInstance(0, 0, Collections.emptyList());
 
-        List<CarSimulationResult> carSimulationResults = new ArrayList<>(carStartTimePaths.size());
+        List<CarSimulationResult> carSimulationResults = new ArrayList<>(singleSolutions.size());
 
         int minPlanTime = optionalMinPlanTime.getAsInt();
 
@@ -283,7 +283,8 @@ public class TrafficSimulationGraph {
                 });
                 System.out.println("\n\nAll roads:");
                 SimulationVisualizationUtils.printRoads(roads.values());*/
-                return SimulationResult.newDeadlockInstance(time, -1, carSimulationResults);
+                clearSimulation();
+                return FullSimulationResult.newDeadlockInstance(time, -1, carSimulationResults);
             }
 
             Iterator<SimulationGarageCar> garageCarIterator = garageCarsSortedByTimeAndId.iterator();
@@ -301,26 +302,27 @@ public class TrafficSimulationGraph {
                 if (scheduleToNewRoad(roadCar, road, speed - 1) == ScheduleToNewRoadResult.SUCCESS) {
                     garageCarIterator.remove();
                     roadCars.put(roadCar.carId, roadCar);
-                } else if (failOnCantStart)
-                    return SimulationResult.newCantStartOnTimeInstance(time, -1, carSimulationResults);
-                else
+                } else if (failOnCantStart) {
+                    clearSimulation();
+                    return FullSimulationResult.newCantStartOnTimeInstance(time, -1, carSimulationResults);
+                } else
                     cantStartOnTime = true;
             }
         }
 
-        return SimulationResult.newSuccessInstance(cantStartOnTime, time, -1, carSimulationResults);
+        return FullSimulationResult.newSuccessInstance(cantStartOnTime, time, -1, carSimulationResults);
     }
 
-    public SimulationResult simulateAeap(List<Pair<Car, IntObjPair<TurnPath>>> carStartTimePaths) {
-        return simulate(carStartTimePaths, false);
+    public FullSimulationResult simulateAeap(List<CarStartTimeTurnPathSingleSolution> singleSolutions) {
+        return simulate(singleSolutions, false);
     }
 
-    public SimulationResult simulateAeapWithPlanTimes(List<Pair<Car, TurnPath>> carPaths) {
-        return simulateAeap(SimulationDataUtils.carPathsToCarStartTimePaths(carPaths));
+    public FullSimulationResult simulateAeapWithPlanTimes(List<Pair<Car, TurnPath>> carPaths) {
+        return simulateAeap(SimulationDataUtils.carPathsToSingleSolutions(carPaths));
     }
 
-    public SimulationResult simulateStrict(List<Pair<Car, IntObjPair<TurnPath>>> carStartTimePaths) {
-        return simulate(carStartTimePaths, true);
+    public FullSimulationResult simulateStrict(List<CarStartTimeTurnPathSingleSolution> singleSolutions) {
+        return simulate(singleSolutions, true);
     }
 
     public TurnPath convertPathToTurnPath(int from, Path path) {

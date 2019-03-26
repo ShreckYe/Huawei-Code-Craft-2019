@@ -1,75 +1,155 @@
 package com.huawei.optimization;
 
 
-import com.huawei.common.IntObjPair;
+import com.huawei.common.ListUtils;
+import com.huawei.common.MathUtils;
 import com.huawei.common.Pair;
 import com.huawei.data.Car;
 import com.huawei.data.Path;
 import com.huawei.simulation.*;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.huawei.simulation.SimulationResult.*;
+import static com.huawei.simulation.FullSimulationResult.STATUS_DEADLOCK;
 
 public class InitialSolutions {
-    public static List<Pair<Car, IntObjPair<TurnPath>>> determineSuccessfulStartTimesWithPath(TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+    private static void setStartTimesToActual(List<CarStartTimeTurnPathSingleSolution> singleSolutions, FullSimulationResult fullSimulationResult) {
+        Map<Integer, Integer> actualStartTimes = fullSimulationResult.getCarSimulationResults().stream().collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));
+        for (CarStartTimeTurnPathSingleSolution singleSolution : singleSolutions)
+            singleSolution.startTime = actualStartTimes.get(actualStartTimes.get(singleSolution.getCar().getId()));
+    }
+
+    private static List<CarStartTimeTurnPathSingleSolution> getSingleSolutionsOrderedDescentByIdealArriveTime
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
         List<Pair<Car, Path>> carPaths = carIdealPathResults.stream()
                 .sorted(Comparator.comparingDouble(carIdealPathResult -> -carIdealPathResult.getSecond().getIdealArriveTime()))
                 .map(carIdealPathResult -> new Pair<>(carIdealPathResult.getFirst(), carIdealPathResult.getSecond().getPath()))
                 .collect(Collectors.toList());
-        List<Pair<Car, IntObjPair<TurnPath>>> carStartTimePaths = SimulationDataUtils.carPathsToCarStartTimePaths(
+        return SimulationDataUtils.carPathsToSingleSolutions(
                 simulationGraph.convertCarPathToCarTurnPath(carPaths));
+    }
 
+    public static List<CarStartTimeTurnPathSingleSolution> determineSuccessfulStartTimesOneByOne
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+        List<CarStartTimeTurnPathSingleSolution> singleSolutions = getSingleSolutionsOrderedDescentByIdealArriveTime(simulationGraph, carIdealPathResults);
 
-        int size = carStartTimePaths.size();
-        SimulationResult simulationResult = null;
-        int inc = 1, lastSuccessfulScheduleTime = -1;
+        int size = singleSolutions.size();
+        List<CarStartTimeTurnPathSingleSolution> successfulSingleSolutions = new ArrayList<>();
+        int lastSuccessfulSystemScheduleTime = 0;
         for (int i = 0; i < size; ) {
-            List<Pair<Car, IntObjPair<TurnPath>>> simulationCarStartTimePaths = carStartTimePaths.subList(0, i + 1);
-            simulationResult = simulationGraph.simulateAeap(simulationCarStartTimePaths);
-            simulationGraph.clearSimulation();
+            CarStartTimeTurnPathSingleSolution singleSolution = singleSolutions.get(i);
+            successfulSingleSolutions.add(singleSolution);
+            FullSimulationResult fullSimulationResult = simulationGraph.simulateAeap(successfulSingleSolutions);
 
-            switch (simulationResult.getStatusCode()) {
-                case STATUS_SUCCESS_AEAP:
-                    System.out.println("Success AEAP: " + i);
-                    inc = 1;
-                    lastSuccessfulScheduleTime = simulationResult.getSystemScheduleTime();
-                    i++;
-                    break;
-                case STATUS_SUCCESS:
-                    System.out.println("Success: " + i);
-                    inc = 1;
-                    lastSuccessfulScheduleTime = simulationResult.getSystemScheduleTime();
-                    i++;
-                    break;
+            if (fullSimulationResult.isSuccessfulAeap()) {
+                System.out.println("Success: " + i + ", time: " + lastSuccessfulSystemScheduleTime);
+                lastSuccessfulSystemScheduleTime = fullSimulationResult.getSystemScheduleTime();
+                i++;
+            } else if (fullSimulationResult.getStatusCode() == STATUS_DEADLOCK) {
+                System.out.println("Deadlock: " + i);
 
-                case STATUS_DEADLOCK:
-                    System.out.println("Deadlock: " + i);
-                    IntObjPair<TurnPath> startTimeTurnPath = carStartTimePaths.get(i).getSecond();
-                    int startTime = startTimeTurnPath.getFirst();
-                    if (startTime >= lastSuccessfulScheduleTime)
-                        throw new AssertionError();
-                    startTime += inc;
-                    startTimeTurnPath.setFirst(startTime);
-                    if (startTime > lastSuccessfulScheduleTime) {
-                        startTime = lastSuccessfulScheduleTime;
-                    }
-                    inc *= 2;
-                    System.out.println(inc + " " + startTime + " " + lastSuccessfulScheduleTime);
+                // Try to find a relatively small offset using binary search
+                int low = singleSolution.startTime,
+                        high = lastSuccessfulSystemScheduleTime;
+                while (low < high) {
+                    int mid = (low + high) >> 1;
 
-                    break;
-                default:
-                    throw new AssertionError();
-            }
+                    singleSolution.startTime = mid;
+                    FullSimulationResult bsFullSimulationResult = simulationGraph.simulateAeap(successfulSingleSolutions);
+
+                    if (bsFullSimulationResult.isSuccessfulAeap()) {
+                        // high always successful
+                        high = mid;
+                        lastSuccessfulSystemScheduleTime = fullSimulationResult.getSystemScheduleTime();
+                    } else
+                        // low possibly successful
+                        low = mid + 1;
+                }
+
+                singleSolution.startTime = high;
+            } else
+                throw new AssertionError();
         }
 
-        Map<Integer, Integer> actualStartTimes = simulationResult.getCarSimulationResults().stream().collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));
-        for (Pair<Car, IntObjPair<TurnPath>> carStartTimePath : carStartTimePaths)
-            carStartTimePath.getSecond().setFirst(actualStartTimes.get(carStartTimePath.getFirst().getId()));
+        // TODO: setStartTimesToActual();
 
-        return carStartTimePaths;
+        return successfulSingleSolutions;
+    }
+
+    public static List<CarStartTimeTurnPathSingleSolution> determineSuccessfulStartTimesByDivideAndMerge
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+        List<CarStartTimeTurnPathSingleSolution> singleSolutions = getSingleSolutionsOrderedDescentByIdealArriveTime(simulationGraph, carIdealPathResults);
+
+        return divideAndMerge(simulationGraph, singleSolutions).singleSolutions;
+    }
+
+    private static CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult divideAndMerge(TrafficSimulationGraph simulationGraph, List<CarStartTimeTurnPathSingleSolution> singleSolutions) {
+        int size = singleSolutions.size();
+
+        if (size == 0)
+            return new CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult(singleSolutions, 0, 0);
+        else if (size == 1) {
+            FullSimulationResult fullSimulationResult = simulationGraph.simulateAeap(singleSolutions);
+            if (!fullSimulationResult.isSuccessfulAeap())
+                throw new AssertionError();
+            return new CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult(singleSolutions, singleSolutions.get(0).startTime, fullSimulationResult.getSystemScheduleTime());
+        }
+
+        int halfSize = MathUtils.ceilDivBy2(size);
+        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult firstHalf = divideAndMerge(simulationGraph, singleSolutions.subList(0, halfSize)),
+                secondHalf = divideAndMerge(simulationGraph, singleSolutions.subList(halfSize, size));
+
+        return mergeCarPathsAndDetermineStartTimes(simulationGraph, firstHalf, secondHalf);
+    }
+
+    private static CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult
+    mergeCarPathsAndDetermineStartTimes(TrafficSimulationGraph simulationGraph,
+                                        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult earlierSolution,
+                                        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult laterSolution) {
+        List<CarStartTimeTurnPathSingleSolution> singleSolutions = ListUtils.concatLists(earlierSolution.singleSolutions, laterSolution.singleSolutions);
+
+        // We may be lucky to directly merge two without shifting
+        FullSimulationResult directFullSimulationResult = simulationGraph.simulateAeap(singleSolutions);
+        if (directFullSimulationResult.isSuccessfulAeap())
+            return new CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult(singleSolutions,
+                    Math.min(earlierSolution.minStartTime, laterSolution.minStartTime),
+                    directFullSimulationResult.getSystemScheduleTime());
+
+        // Try to find a relatively small offset using binary search
+        int low = 0,
+                high = Math.max(earlierSolution.systemScheduleTime - laterSolution.minStartTime, 0);
+        int lastSuccessfulSystemScheduleTime = -1;
+        while (low < high) {
+            int mid = (low + high) >> 1;
+
+            laterSolution.shiftStartTimesBy(mid);
+            FullSimulationResult fullSimulationResult = simulationGraph.simulateAeap(singleSolutions);
+            laterSolution.shiftStartTimesBy(-mid);
+
+            if (fullSimulationResult.isSuccessfulAeap()) {
+                // high always successful
+                high = mid;
+                lastSuccessfulSystemScheduleTime = fullSimulationResult.getSystemScheduleTime();
+            } else if (fullSimulationResult.getStatusCode() == STATUS_DEADLOCK)
+                // low possibly successful
+                low = mid + 1;
+            else
+                throw new AssertionError();
+        }
+        if (high != low) throw new AssertionError();
+        laterSolution.shiftStartTimesBy(high);
+
+        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult solution = new CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult(singleSolutions,
+                Math.min(earlierSolution.minStartTime, laterSolution.minStartTime + high),
+                lastSuccessfulSystemScheduleTime != -1 ? lastSuccessfulSystemScheduleTime :
+                        earlierSolution.systemScheduleTime + laterSolution.getSystemScheduleRunningTime()
+        );
+
+        System.out.println("Size: " + singleSolutions.size() + ", schedule time: " + solution.systemScheduleTime);
+        return solution;
     }
 }

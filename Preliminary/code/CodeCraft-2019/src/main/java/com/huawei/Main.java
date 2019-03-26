@@ -6,6 +6,7 @@ import com.huawei.data.*;
 import com.huawei.graph.CarRoadGraph;
 import com.huawei.graph.DirectedRoadId;
 import com.huawei.optimization.InitialSolutions;
+import com.huawei.simulation.CarStartTimeTurnPathSingleSolution;
 import com.huawei.simulation.IdealPathResult;
 import com.huawei.simulation.TrafficSimulationGraph;
 import com.huawei.simulation.TurnPath;
@@ -54,12 +55,12 @@ public class Main {
             carIdealPathResults.add(new Pair<>(car, new IdealPathResult(car.getPlanTime() + shortestPath.getWeight(), path)));
         }
         /*List<Pair<Car, TurnPath>> carPathCrossTurns = simulationGraph.convertCarPathToCarTurnPath(carPathPairs);
-        SimulationResult simulationResult = simulationGraph.simulateAeapWithPlanTimes(carPathCrossTurns);
+        FullSimulationResult simulationResult = simulationGraph.simulateAeapWithPlanTimes(carPathCrossTurns);
         switch (simulationResult.getStatusCode()) {
-            case SimulationResult.STATUS_SUCCESS:
+            case FullSimulationResult.STATUS_SUCCESS:
                 logger.info("AEAP simulation success");
                 break;
-            case SimulationResult.STATUS_DEADLOCK:
+            case FullSimulationResult.STATUS_DEADLOCK:
                 logger.info("AEAP simulation deadlock at: " + simulationResult.getSystemScheduleTime());
                 logger.info(simulationResult);
                 throw new RuntimeException("Deadlock TODO");
@@ -69,13 +70,15 @@ public class Main {
 
         Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
                 .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));*/
-        List<Pair<Car, IntObjPair<TurnPath>>> carStartTimeTurnPaths = InitialSolutions.determineSuccessfulStartTimesWithPath(simulationGraph, carIdealPathResults);
+        List<CarStartTimeTurnPathSingleSolution> carStartTimeTurnPaths = InitialSolutions.determineSuccessfulStartTimesByDivideAndMerge(simulationGraph, carIdealPathResults);
+
+        System.out.println(simulationGraph.simulateAeap(carStartTimeTurnPaths).getSystemScheduleTime());
 
         List<Answer> answers = carStartTimeTurnPaths.stream().map(carStartTimeTurnPath -> {
-            Car car = carStartTimeTurnPath.getFirst();
+            Car car = carStartTimeTurnPath.getCar();
             return new Answer(car.getId(),
-                    carStartTimeTurnPath.getSecond().getFirst(),
-                    simulationGraph.convertTurnPathToPath(car.getFrom(), carStartTimeTurnPath.getSecond().getSecond()));
+                    carStartTimeTurnPath.startTime,
+                    simulationGraph.convertTurnPathToPath(car.getFrom(), carStartTimeTurnPath.turnPath));
         }).collect(Collectors.toList());
 
 
