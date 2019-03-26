@@ -18,8 +18,8 @@ public class CheckPathConversion {
         String answerPath = args[3];
 
         List<Car> cars = DataIoUtils.readCars(carPath);
-        List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
         List<Road> roads = DataIoUtils.readRoads(roadPath);
+        List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
         List<Answer> answers = DataIoUtils.readAnswers(answerPath);
 
         Map<Integer, Integer> carFroms = cars.stream().collect(Collectors.toMap(Car::getId, Car::getFrom));

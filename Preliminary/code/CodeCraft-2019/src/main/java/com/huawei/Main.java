@@ -40,8 +40,8 @@ public class Main {
         logger.info("start read input files");
 
         List<Car> cars = DataIoUtils.readCars(carPath);
-        List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
         List<Road> roads = DataIoUtils.readRoads(roadPath);
+        List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
 
         // TODO: calc
         TrafficSimulationGraph simulationGraph = new TrafficSimulationGraph(roads, crosses);

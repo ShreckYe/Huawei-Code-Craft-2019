@@ -7,7 +7,7 @@ public class CarStartTimeTurnPathSingleSolution {
     public int startTime;
     public TurnPath turnPath;
 
-    CarStartTimeTurnPathSingleSolution(Car car, int startTime, TurnPath turnPath) {
+    public CarStartTimeTurnPathSingleSolution(Car car, int startTime, TurnPath turnPath) {
         this.car = car;
         this.startTime = startTime;
         this.turnPath = turnPath;
