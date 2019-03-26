@@ -33,6 +33,8 @@ main/java/com/huawei/simulation/SimulationRoadWithCrossDirection.java
 main/java/com/huawei/simulation/SimulationVisualizationUtils.java
 main/java/com/huawei/simulation/TrafficSimulationGraph.java
 main/java/com/huawei/simulation/TurnPath.java
+main/java/com/huawei/test/CheckPathConversion.java
+main/java/com/huawei/test/SimulateAnswer.java
 main/java/com/huawei/util/DataIoUtils.java
 main/java/com/huawei/util/DataUtils.java
 main/java/com/huawei/util/MalformedTupleException.java

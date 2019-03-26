@@ -37,10 +37,14 @@ class SimulationRoadCar {
 
     CrossTurn getCurrentTurn() throws NoSuchElementException {
         try {
-            return currentPathIndex == turnPath.crossTurns.length ? null : turnPath.crossTurns[currentPathIndex];
+            return currentPathIndex == turnPath.crossTurns.length ? CrossTurn.STRAIGHT : turnPath.crossTurns[currentPathIndex];
         } catch (ArrayIndexOutOfBoundsException e) {
             throw new NoSuchElementException();
         }
+    }
+
+    boolean isArriving() {
+        return currentPathIndex == turnPath.crossTurns.length;
     }
 
     @Override

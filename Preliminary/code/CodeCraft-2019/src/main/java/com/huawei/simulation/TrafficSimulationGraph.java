@@ -134,14 +134,14 @@ public class TrafficSimulationGraph {
 
     // Simulate in the condition that a car starts as early as possible if it can't start at start time
     private FullSimulationResult simulate(List<CarStartTimeTurnPathSingleSolution> singleSolutions, boolean failOnCantStart) {
-        LinkedList<SimulationGarageCar> garageCarsSortedByTimeAndId = singleSolutions.stream()
+        LinkedList<SimulationGarageCar> garageCarsSortedByStartTimeAndId = singleSolutions.stream()
                 .map(solution -> new SimulationGarageCar(solution.car, solution.startTime, solution.turnPath))
                 .sorted(Comparator.comparingInt((ToIntFunction<SimulationGarageCar>) car -> car.startTime)
-                        .thenComparingInt(value -> value.id))
+                        .thenComparingInt(car -> car.id))
                 .collect(Collectors.toCollection(LinkedList::new));
         HashMap<Integer, SimulationRoadCar> roadCars = new HashMap<>(singleSolutions.size());
 
-        OptionalInt optionalMinPlanTime = garageCarsSortedByTimeAndId.stream().mapToInt(car -> car.startTime).min();
+        OptionalInt optionalMinPlanTime = garageCarsSortedByStartTimeAndId.stream().mapToInt(car -> car.startTime).min();
         if (!optionalMinPlanTime.isPresent())
             return FullSimulationResult.newSuccessInstance(0, 0, Collections.emptyList());
 
@@ -151,7 +151,7 @@ public class TrafficSimulationGraph {
 
         int time;
         boolean cantStartOnTime = false;
-        for (time = minPlanTime; !(garageCarsSortedByTimeAndId.isEmpty() && roadCars.isEmpty()); time++) {
+        for (time = minPlanTime; !(garageCarsSortedByStartTimeAndId.isEmpty() && roadCars.isEmpty()); time++) {
             // Schedule cars in the time period from time to time + 1
             // No need to mark them beforehand because they will be marked when scheduling cars on roads
             /*for (SimulationRoadCar roadCar : roadCars)
@@ -209,14 +209,14 @@ public class TrafficSimulationGraph {
                                 }*/
                                 ArrayDeque<SimulationRoadCar> p1wChannel = p1wCarChannelPair.getSecond();
 
-                                CrossTurn turn = p1wCar.getCurrentTurn();
-                                if (turn == null) {
+                                if (p1wCar.isArriving()) {
                                     // Arrives at destination
                                     p1wChannel.removeFirst();
                                     roadCars.remove(p1wCar.carId);
                                     carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, p1wCar.turnPath, null, null));
                                     continue;
                                 }
+                                CrossTurn turn = p1wCar.getCurrentTurn();
                                 int directionOut = getDirectionOut(roadAndDirection.direction, turn);
 
                                 // Check if there are cars with higher turn priority
@@ -287,13 +287,13 @@ public class TrafficSimulationGraph {
                 return FullSimulationResult.newDeadlockInstance(time, -1, carSimulationResults);
             }
 
-            Iterator<SimulationGarageCar> garageCarIterator = garageCarsSortedByTimeAndId.iterator();
+            Iterator<SimulationGarageCar> garageCarIterator = garageCarsSortedByStartTimeAndId.iterator();
             while (garageCarIterator.hasNext()) {
                 SimulationGarageCar garageCar = garageCarIterator.next();
                 if (garageCar.startTime > time)
                     break;
 
-                // Use default order: first by plan time then by ID
+                // Use default order: first by start time then by ID
                 // TODO: may violate the rule
                 SimulationRoad road = crosses.get(garageCar.from).roadsOut[garageCar.path.firstDirection];
                 int speed = min(road.speed, garageCar.speed);

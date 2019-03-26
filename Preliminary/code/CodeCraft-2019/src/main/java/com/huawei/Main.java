@@ -1,6 +1,5 @@
 package com.huawei;
 
-import com.huawei.common.IntObjPair;
 import com.huawei.common.Pair;
 import com.huawei.data.*;
 import com.huawei.graph.CarRoadGraph;
@@ -9,7 +8,6 @@ import com.huawei.optimization.InitialSolutions;
 import com.huawei.simulation.CarStartTimeTurnPathSingleSolution;
 import com.huawei.simulation.IdealPathResult;
 import com.huawei.simulation.TrafficSimulationGraph;
-import com.huawei.simulation.TurnPath;
 import com.huawei.util.DataIoUtils;
 import org.apache.log4j.Logger;
 import org.jgrapht.GraphPath;
