@@ -6,7 +6,7 @@ class SimulationRoadCar {
     final int carId,
             speed,
             planTime;
-    int position;
+    private int position;
     final static int UNINITILIAZED_POSITION = Integer.MAX_VALUE;
     final TurnPath turnPath;
     int currentPathIndex;
@@ -32,10 +32,15 @@ class SimulationRoadCar {
         this(carId, speed, planTime, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, false);
     }
 
-    /*private void scheduleTo(int newPosition) {
-        waiting = false;
+    public int getPosition() {
+        return position;
+    }
+
+    void scheduleToPosition(int newPosition) {
         position = newPosition;
-    }*/
+        if (!waiting) throw new IllegalStateException("Already scheduled");
+        waiting = false;
+    }
 
     CrossTurn getCurrentTurn() throws NoSuchElementException {
         try {

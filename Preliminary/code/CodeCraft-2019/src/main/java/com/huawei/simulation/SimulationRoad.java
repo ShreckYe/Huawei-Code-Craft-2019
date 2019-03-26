@@ -47,10 +47,10 @@ class SimulationRoad {
             return null;
 
         @SuppressWarnings("OptionalGetWithoutIsPresent") int priorityOnePosition = firstRowWaitingCarChannelPairs.stream()
-                .mapToInt(carChannelPair -> carChannelPair.getFirst().position)
+                .mapToInt(carChannelPair -> carChannelPair.getFirst().getPosition())
                 .max().getAsInt();
         @SuppressWarnings("OptionalGetWithoutIsPresent") Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>> priorityOneWaitingCarChannelPair = firstRowWaitingCarChannelPairs.stream()
-                .filter(carChannelPair -> carChannelPair.getFirst().position == priorityOnePosition)
+                .filter(carChannelPair -> carChannelPair.getFirst().getPosition() == priorityOnePosition)
                 .findFirst().get();
 
         return priorityOneWaitingCarChannelPair;

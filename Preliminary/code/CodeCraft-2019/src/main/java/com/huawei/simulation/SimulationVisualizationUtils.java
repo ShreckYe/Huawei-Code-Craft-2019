@@ -40,17 +40,17 @@ class SimulationVisualizationUtils {
             Iterator<SimulationRoadCar> carIterator = channel.descendingIterator();
             SimulationRoadCar currentCar = carIterator.hasNext() ? carIterator.next() : null;
             for (int i = 0; i < road.length; i++) {
-                if (currentCar != null && i == currentCar.position) {
+                if (currentCar != null && i == currentCar.getPosition()) {
                     if (currentCar.waiting) {
                         System.out.print('w');
                         waitingCars.add(currentCar);
                     } else
                         System.out.print('s');
                     currentCar = carIterator.hasNext() ? carIterator.next() : null;
-                } else if (currentCar != null && i > currentCar.position) {
+                } else if (currentCar != null && i > currentCar.getPosition()) {
                     // TODO: this check can be moved to a separate function
                     throw new IllegalArgumentException("Cars in the same location or not in order: \n" +
-                            "positions: " + channel.stream().map(car -> car.position).collect(Collectors.toList()) + ",\n" +
+                            "positions: " + channel.stream().map(SimulationRoadCar::getPosition).collect(Collectors.toList()) + ",\n" +
                             "cars IDs: " + channel.stream().map(car -> car.carId).collect(Collectors.toList()));
                 } else
                     System.out.print('-');
