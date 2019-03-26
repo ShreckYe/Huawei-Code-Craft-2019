@@ -37,8 +37,8 @@ class SimulationRoadCar {
     }
 
     void scheduleToPosition(int newPosition) {
-        position = newPosition;
         if (!waiting) throw new IllegalStateException("Already scheduled");
+        position = newPosition;
         waiting = false;
     }
 
