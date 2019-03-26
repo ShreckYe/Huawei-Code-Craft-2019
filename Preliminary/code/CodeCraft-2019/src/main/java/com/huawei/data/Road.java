@@ -48,6 +48,34 @@ public class Road {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Road road = (Road) o;
+
+        if (id != road.id) return false;
+        if (length != road.length) return false;
+        if (speed != road.speed) return false;
+        if (channel != road.channel) return false;
+        if (from != road.from) return false;
+        if (to != road.to) return false;
+        return isDuplex == road.isDuplex;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + length;
+        result = 31 * result + speed;
+        result = 31 * result + channel;
+        result = 31 * result + from;
+        result = 31 * result + to;
+        result = 31 * result + (isDuplex ? 1 : 0);
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "Road{" +
                 "id=" + id +

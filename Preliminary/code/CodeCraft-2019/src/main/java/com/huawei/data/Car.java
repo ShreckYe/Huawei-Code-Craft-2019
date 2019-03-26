@@ -36,6 +36,30 @@ public class Car {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Car car = (Car) o;
+
+        if (id != car.id) return false;
+        if (from != car.from) return false;
+        if (to != car.to) return false;
+        if (speed != car.speed) return false;
+        return planTime == car.planTime;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + from;
+        result = 31 * result + to;
+        result = 31 * result + speed;
+        result = 31 * result + planTime;
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "Car{" +
                 "id=" + id +

@@ -10,9 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public final class DataIoUtils {
     //private static final Logger logger = Logger.getLogger(DataIoUtils.class);
@@ -72,13 +70,13 @@ public final class DataIoUtils {
         }
     }
 
-    /*public static List<Answer> readAnswers(String answerPath) throws IOException {
+    public static List<Answer> readAnswers(String answerPath) throws IOException {
         try {
             return readTuples(answerPath, Answer::fromTuple);
         } catch (IndexOutOfBoundsException e) {
             throw new IllegalArgumentException(e);
         }
-    }*/
+    }
 
     public static void writeAnswers(List<Answer> answers, String answerPath) throws IOException {
         try (FileWriter writer = new FileWriter(answerPath)) {
