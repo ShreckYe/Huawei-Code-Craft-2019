@@ -151,6 +151,7 @@ public class TrafficSimulationGraph {
 
         int time;
         boolean cantStartOnTime = false;
+        int totalTravelTime = 0;
         for (time = minPlanTime; !(garageCarsSortedByStartTimeAndId.isEmpty() && roadCars.isEmpty()); time++) {
             // Schedule cars in the time period from time to time + 1
             // No need to mark them beforehand because they will be marked when scheduling cars on roads
@@ -213,7 +214,9 @@ public class TrafficSimulationGraph {
                                     // Arrives at destination
                                     p1wChannel.removeFirst();
                                     roadCars.remove(p1wCar.carId);
-                                    carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, p1wCar.turnPath, null, null));
+                                    int arriveTime = time + 1;
+                                    totalTravelTime += arriveTime - p1wCar.planTime;
+                                    carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, arriveTime, p1wCar.turnPath, null, null));
                                     continue;
                                 }
                                 CrossTurn turn = p1wCar.getCurrentTurn();
@@ -284,7 +287,7 @@ public class TrafficSimulationGraph {
                 System.out.println("\n\nAll roads:");
                 SimulationVisualizationUtils.printRoads(roads.values());*/
                 clearSimulation();
-                return FullSimulationResult.newDeadlockInstance(time, -1, carSimulationResults);
+                return FullSimulationResult.newDeadlockInstance(time, totalTravelTime, carSimulationResults);
             }
 
             Iterator<SimulationGarageCar> garageCarIterator = garageCarsSortedByStartTimeAndId.iterator();
@@ -298,19 +301,19 @@ public class TrafficSimulationGraph {
                 SimulationRoad road = crosses.get(garageCar.from).roadsOut[garageCar.path.firstDirection];
                 int speed = min(road.speed, garageCar.speed);
 
-                SimulationRoadCar roadCar = new SimulationRoadCar(garageCar.id, garageCar.speed, garageCar.path, time);
+                SimulationRoadCar roadCar = new SimulationRoadCar(garageCar.id, garageCar.speed, garageCar.planTime, garageCar.path, time);
                 if (scheduleToNewRoad(roadCar, road, speed - 1) == ScheduleToNewRoadResult.SUCCESS) {
                     garageCarIterator.remove();
                     roadCars.put(roadCar.carId, roadCar);
                 } else if (failOnCantStart) {
                     clearSimulation();
-                    return FullSimulationResult.newCantStartOnTimeInstance(time, -1, carSimulationResults);
+                    return FullSimulationResult.newCantStartOnTimeInstance(time, totalTravelTime, carSimulationResults);
                 } else
                     cantStartOnTime = true;
             }
         }
 
-        return FullSimulationResult.newSuccessInstance(cantStartOnTime, time, -1, carSimulationResults);
+        return FullSimulationResult.newSuccessInstance(cantStartOnTime, time, totalTravelTime, carSimulationResults);
     }
 
     public FullSimulationResult simulateAeap(List<CarStartTimeTurnPathSingleSolution> singleSolutions) {

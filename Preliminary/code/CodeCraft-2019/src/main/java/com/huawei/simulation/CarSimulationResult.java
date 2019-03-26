@@ -8,14 +8,16 @@ import java.util.List;
 
 public class CarSimulationResult {
     private int carId;
-    private int startTime;
+    private int startTime,
+            arriveTime;
     private TurnPath turnPath;
     private Path path;
     private List<Pair<Integer, Location>> timeLocations;
 
-    public CarSimulationResult(int carId, int startTime, TurnPath turnPath, Path path, List<Pair<Integer, Location>> timeLocations) {
+    public CarSimulationResult(int carId, int startTime, int arriveTime, TurnPath turnPath, Path path, List<Pair<Integer, Location>> timeLocations) {
         this.carId = carId;
         this.startTime = startTime;
+        this.arriveTime = arriveTime;
         this.turnPath = turnPath;
         this.path = path;
         this.timeLocations = timeLocations;
@@ -27,6 +29,14 @@ public class CarSimulationResult {
 
     public int getStartTime() {
         return startTime;
+    }
+
+    public int getArriveTime() {
+        return arriveTime;
+    }
+
+    public TurnPath getTurnPath() {
+        return turnPath;
     }
 
     public Path getPath() {

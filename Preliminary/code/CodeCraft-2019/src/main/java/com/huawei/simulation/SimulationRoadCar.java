@@ -4,7 +4,8 @@ import java.util.NoSuchElementException;
 
 class SimulationRoadCar {
     final int carId,
-            speed;
+            speed,
+            planTime;
     int position;
     final static int UNINITILIAZED_POSITION = Integer.MAX_VALUE;
     final TurnPath turnPath;
@@ -16,9 +17,10 @@ class SimulationRoadCar {
     // Indicates whether the car is waiting to be scheduled
     boolean waiting;
 
-    SimulationRoadCar(int carId, int speed, int position, TurnPath turnPath, int currentPathIndex, int startTime, boolean waiting) {
+    public SimulationRoadCar(int carId, int speed, int planTime, int position, TurnPath turnPath, int currentPathIndex, int startTime, boolean waiting) {
         this.carId = carId;
         this.speed = speed;
+        this.planTime = planTime;
         this.position = position;
         this.turnPath = turnPath;
         this.currentPathIndex = currentPathIndex;
@@ -26,8 +28,8 @@ class SimulationRoadCar {
         this.waiting = waiting;
     }
 
-    SimulationRoadCar(int carId, int speed, TurnPath turnPath, int startTime) {
-        this(carId, speed, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, false);
+    SimulationRoadCar(int carId, int speed, int planTime, TurnPath turnPath, int startTime) {
+        this(carId, speed, planTime, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, false);
     }
 
     /*private void scheduleTo(int newPosition) {
