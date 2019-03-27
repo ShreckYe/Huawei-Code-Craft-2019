@@ -55,11 +55,6 @@ class SimulationRoadCar {
         if (!waiting) throw new IllegalStateException("Already scheduled");
         position = newPosition;
         waiting = false;
-
-        if (carId == 10801) {
-            System.out.println("Scheduling: " + this);
-            Thread.dumpStack();
-        }
     }
 
     CrossTurn getCurrentTurn() throws NoSuchElementException {
