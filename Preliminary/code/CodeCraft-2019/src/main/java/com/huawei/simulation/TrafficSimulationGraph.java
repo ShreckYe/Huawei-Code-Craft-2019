@@ -21,8 +21,9 @@ import static java.lang.Math.min;
 
 public class TrafficSimulationGraph {
     // Use LinkedHashMap to preserve insertion order
+    // Roads not necessarily sorted
     LinkedHashMap<DirectedRoadId, SimulationRoad> roads;
-    // Garage cars ordered by plan time
+    // Crosses sorted by ID
     LinkedHashMap<Integer, SimulationCross> crosses;
 
     private SimulationRoad getRoadInFromCross(int crossId, Map<Integer, Road> roadRecordMap, int roadId) {
@@ -47,7 +48,7 @@ public class TrafficSimulationGraph {
         Map<Integer, Road> roadRecordMap = roadRecords.stream().collect(Collectors.toMap(Road::getId, Function.identity()));
 
         crosses = new LinkedHashMap<>(crossRecords.size());
-        for (Cross crossRecord : crossRecords) {
+        for (Cross crossRecord : crossRecords.stream().sorted(Comparator.comparingInt(Cross::getId)).collect(Collectors.toList())) {
             SimulationRoad roadInNorth = getRoadInFromCross(crossRecord.getId(), roadRecordMap, crossRecord.getRoadIdNorth()),
                     roadInEast = getRoadInFromCross(crossRecord.getId(), roadRecordMap, crossRecord.getRoadIdEast()),
                     roadInSouth = getRoadInFromCross(crossRecord.getId(), roadRecordMap, crossRecord.getRoadIdSouth()),
@@ -223,7 +224,8 @@ public class TrafficSimulationGraph {
                                     if (hpidP1wPair == null) return false;
                                     SimulationRoadCar hpidP1wCar = hpidP1wPair.getFirst();
                                     return hpidP1wCar.getCurrentTurn() == higherPriorityTurn;
-                                })) break;
+                                }))
+                                    break;
 
 
                                 // Finally we can try to schedule this car
@@ -251,7 +253,7 @@ public class TrafficSimulationGraph {
                                     } else /*if (result == ScheduleToNewRoadResult.FRONT_CAR_WAITING)*/
                                         break;
                                 }
-                            } while (false);
+                            } while (true);
                         }
 
                         if (existsCrossCarScheduled) existsCarScheduled = true;
