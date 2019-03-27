@@ -8,10 +8,7 @@ import com.huawei.data.Car;
 import com.huawei.data.Path;
 import com.huawei.simulation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.huawei.simulation.FullSimulationResult.STATUS_DEADLOCK;
@@ -27,6 +24,16 @@ public class InitialSolutions {
             (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
         List<Pair<Car, Path>> carPaths = carIdealPathResults.stream()
                 .sorted(Comparator.comparingDouble(carIdealPathResult -> -carIdealPathResult.getSecond().getIdealArriveTime()))
+                .map(carIdealPathResult -> new Pair<>(carIdealPathResult.getFirst(), carIdealPathResult.getSecond().getPath()))
+                .collect(Collectors.toList());
+        return SimulationDataUtils.carPathsToSingleSolutions(
+                simulationGraph.convertCarPathToCarTurnPath(carPaths));
+    }
+
+    private static List<CarStartTimeTurnPathSingleSolution> getSingleSolutionsOrderedByPlanTime
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+        List<Pair<Car, Path>> carPaths = carIdealPathResults.stream()
+                .sorted(Comparator.comparingDouble(carIdealPathResult -> carIdealPathResult.getFirst().getPlanTime()))
                 .map(carIdealPathResult -> new Pair<>(carIdealPathResult.getFirst(), carIdealPathResult.getSecond().getPath()))
                 .collect(Collectors.toList());
         return SimulationDataUtils.carPathsToSingleSolutions(
@@ -151,5 +158,19 @@ public class InitialSolutions {
 
         System.out.println("Size: " + singleSolutions.size() + ", schedule time: " + solution.systemScheduleTime);
         return solution;
+    }
+
+    public static List<CarStartTimeTurnPathSingleSolution> determineSuccessfulStartTimesByRunningOneAtEachTime
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+        List<CarStartTimeTurnPathSingleSolution> singleSolutions = getSingleSolutionsOrderedByPlanTime(simulationGraph, carIdealPathResults);
+
+        if (carIdealPathResults.size() == 0) return Collections.emptyList();
+        int lastSystemScheduleTime = simulationGraph.simulateAeap(ListUtils.wrapSingleElement(singleSolutions.get(0))).getSystemScheduleTime();
+        for (CarStartTimeTurnPathSingleSolution singleSolution : singleSolutions.stream().skip(1).collect(Collectors.toList())) {
+            singleSolution.startTime = Math.max(singleSolution.startTime, lastSystemScheduleTime);
+            lastSystemScheduleTime = simulationGraph.simulateAeap(ListUtils.wrapSingleElement(singleSolution)).getSystemScheduleTime();
+        }
+
+        return singleSolutions;
     }
 }

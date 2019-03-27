@@ -13,4 +13,10 @@ public class ListUtils {
         list.addAll(list2);
         return list;
     }
+
+    public static <E> List<E> wrapSingleElement(E element) {
+        ArrayList<E> list = new ArrayList<>(1);
+        list.add(element);
+        return list;
+    }
 }

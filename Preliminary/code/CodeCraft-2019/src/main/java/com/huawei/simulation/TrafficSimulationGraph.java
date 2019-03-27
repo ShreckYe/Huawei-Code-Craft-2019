@@ -151,6 +151,7 @@ public class TrafficSimulationGraph {
         boolean cantStartOnTime = false;
         int totalTravelTime = 0;
         for (time = minPlanTime; !(garageCarsSortedByStartTimeAndId.isEmpty() && roadCars.isEmpty()); time++) {
+            System.out.println("time: " + time);
             // Schedule cars in the time period from time to time + 1
             // No need to mark them beforehand because they will be marked when scheduling cars on roads
             /*for (SimulationRoadCar roadCar : roadCars)
@@ -161,6 +162,10 @@ public class TrafficSimulationGraph {
                 for (ArrayDeque<SimulationRoadCar> channel : road.channels) {
                     SimulationRoadCar frontCar = null;
                     for (SimulationRoadCar car : channel) {
+
+                        if (time == 717 && car.carId == 10801)
+                            System.out.println("Time: " + time + ", scheduling on road: " + car);
+
                         int maxNewPosition = car.getPosition() + min(road.speed, car.speed);
                         if (frontCar == null) {
                             if (maxNewPosition < road.length)
@@ -175,6 +180,8 @@ public class TrafficSimulationGraph {
                             else
                                 car.setWaitingWhenSchedulingRoad();
                         }
+                        if (time == 717 && car.carId == 10801)
+                            System.out.println("Time: " + time + ", scheduled on road: " + car + ", road: " + road.directedRoadId.getRoadId());
                         frontCar = car;
                     }
                 }
@@ -191,25 +198,36 @@ public class TrafficSimulationGraph {
                         existsCrossCarScheduled = false;
                         for (SimulationRoadWithCrossDirection roadAndDirection : cross.roadsInSortedById) {
                             // Schedule all possible cars on this road. Efficiency could be improved with an overall queue
-                            while (true) {
-                                // Breaks when there is no  priority one waiting car or it can't be scheduled due to turn conflict or new road not schedulable (front car waiting or all channels full)
+                            if (time == 717 && roadAndDirection.road.directedRoadId.getRoadId() == 5065) {
+                                System.out.println("Time: " + time + ", scheduling cross road: 5065");
+                                System.out.println(roadAndDirection.road);
+                                /*SimulationRoadCar car10801 = roadCars.get(10801);
+                                System.out.println("Car 10801: " + car10801);
+                                roads.values().stream().flatMap(road -> road.channels.stream().map(channel -> new Pair<>(road, channel))).filter(pair -> pair.getSecond().contains(car10801))
+                                        .forEach(System.out::println);*/
+                                SimulationVisualizationUtils.printRoad(roadAndDirection.road);
+                            }
+                            do {
+                                // Breaks when there is no priority one waiting car or it can't be scheduled due to turn conflict or new road not schedulable (front car waiting or all channels full)
                                 // Find the priority one waiting car
                                 SimulationRoad road = roadAndDirection.road;
                                 Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>> p1wCarChannelPair = road.getPriorityOneWaitingCarChannelPair();
                                 if (p1wCarChannelPair == null) break;
                                 SimulationRoadCar p1wCar = p1wCarChannelPair.getFirst();
-                                /* TODO: remove
-                                if (time == 13 && road.directedRoadId.getRoadId() == 5010) {
-                                    System.out.println("Scheduling cross\n" + p1wCar);
-                                    SimulationVisualizationUtils.printRoad(road);
-                                }*/
                                 ArrayDeque<SimulationRoadCar> p1wChannel = p1wCarChannelPair.getSecond();
 
+                                if (p1wCar.carId == 10760)
+                                    System.out.println("Time: " + time + ", trying: " + p1wCar);
+
+                                System.out.println("Time: "  + time+", checking is arriving: " + p1wCar);
                                 if (p1wCar.isArriving()) {
+                                    System.out.println("Arrived.");
                                     // Arrives at destination
                                     p1wChannel.removeFirst();
                                     roadCars.remove(p1wCar.carId);
-                                    int arriveTime = time + 1;
+                                    // Missed this!!!
+                                    existsCrossCarScheduled = true;
+                                    int arriveTime = time /*+ 1*/;
                                     totalTravelTime += arriveTime - p1wCar.planTime;
                                     carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, arriveTime, p1wCar.turnPath, null, null));
                                     continue;
@@ -217,6 +235,7 @@ public class TrafficSimulationGraph {
                                 CrossTurn turn = p1wCar.getCurrentTurn();
                                 int directionOut = getDirectionOut(roadAndDirection.direction, turn);
 
+                                System.out.println("Time: "  + time+", checking turn priority: " + p1wCar);
                                 // Check if there are cars with higher turn priority
                                 if (turn.getAllWithHigherPriority().stream().anyMatch(higherPriorityTurn -> {
                                     int higherPriorityInDirection = getDirectionIn(directionOut, higherPriorityTurn);
@@ -227,25 +246,19 @@ public class TrafficSimulationGraph {
                                     SimulationRoadCar hpidP1wCar = hpidP1wPair.getFirst();
                                     return hpidP1wCar.getCurrentTurn() == higherPriorityTurn;
                                 })) break;
-                                /* TODO: remove
-                                if (time == 13 && p1wCar.carId == 17472) {
-                                    System.out.println("Passed turn priority: " + p1wCar);
-                                    SimulationVisualizationUtils.printRoad(road);
-                                    for (SimulationRoad road1 : cross.roadsOut)
-                                        if (road1 != null)
-                                            SimulationVisualizationUtils.printRoad(road1);
-                                }*/
 
+
+                                System.out.println("Time: "  + time+", passed turn priority: " + p1wCar);
                                 // Finally we can try to schedule this car
                                 SimulationRoad roadOut = cross.roadsOut[directionOut];
                                 int s1P1 = road.length - p1wCar.getPosition(),
                                         v1 = min(road.speed, p1wCar.speed),
                                         v2 = min(roadOut.speed, p1wCar.speed);
-                                boolean b1 = s1P1 > v1, b2 = s1P1 > v2;
-                                if (b1) {
+                                //boolean b1 = s1P1 > v1, b2 = s1P1 > v2;
+                                if (s1P1 > v1) {
                                     scheduleToRoadFrontAndFollowing(p1wCar, p1wChannel, road, p1wCar.getPosition() + v1);
                                     existsCrossCarScheduled = true;
-                                } else if (b2) {
+                                } else if (s1P1 > v2) {
                                     scheduleToRoadFrontAndFollowing(p1wCar, p1wChannel, road, road.length - 1);
                                     existsCrossCarScheduled = true;
                                 } else {
@@ -261,11 +274,11 @@ public class TrafficSimulationGraph {
                                     } else /*if (result == ScheduleToNewRoadResult.FRONT_CAR_WAITING)*/
                                         break;
                                 }
-                            }
+                            } while (false);
                         }
 
                         if (existsCrossCarScheduled) existsCarScheduled = true;
-                    } while (existsCrossCarScheduled);
+                    } while (false);
                 }
             } while (existsCarScheduled);
 
@@ -295,10 +308,10 @@ public class TrafficSimulationGraph {
                 SimulationRoad road = crosses.get(garageCar.from).roadsOut[garageCar.path.firstDirection];
                 int speed = min(road.speed, garageCar.speed);
 
-                SimulationRoadCar roadCar = new SimulationRoadCar(garageCar.id, garageCar.speed, garageCar.planTime, garageCar.path, time);
-                if (scheduleToNewRoad(roadCar, road, speed - 1) == ScheduleToNewRoadResult.SUCCESS) {
+                SimulationRoadCar car = new SimulationRoadCar(garageCar.id, garageCar.speed, garageCar.planTime, garageCar.path, time);
+                if (scheduleToNewRoad(car, road, speed - 1) == ScheduleToNewRoadResult.SUCCESS) {
                     garageCarIterator.remove();
-                    roadCars.put(roadCar.carId, roadCar);
+                    roadCars.put(car.carId, car);
                 } else if (failOnCantStart) {
                     clearSimulation();
                     return FullSimulationResult.newCantStartOnTimeInstance(time, totalTravelTime, carSimulationResults);
@@ -307,7 +320,7 @@ public class TrafficSimulationGraph {
             }
         }
 
-        return FullSimulationResult.newSuccessInstance(cantStartOnTime, time, totalTravelTime, carSimulationResults);
+        return FullSimulationResult.newSuccessInstance(cantStartOnTime, time - 1, totalTravelTime, carSimulationResults);
     }
 
     public FullSimulationResult simulateAeap(List<CarStartTimeTurnPathSingleSolution> singleSolutions) {

@@ -55,4 +55,17 @@ class SimulationRoad {
 
         return priorityOneWaitingCarChannelPair;
     }
+
+    @Override
+    public String toString() {
+        return "SimulationRoad{" +
+                "directedRoadId=" + directedRoadId +
+                ", length=" + length +
+                ", speed=" + speed +
+                ", numberOfChannels=" + numberOfChannels +
+                ", channels=" + channels +
+                ", from=" + from +
+                ", to=" + to +
+                '}';
+    }
 }
