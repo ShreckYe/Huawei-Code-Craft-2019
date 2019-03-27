@@ -15,7 +15,7 @@ class SimulationRoadCar {
     int startTime;
 
     // Indicates whether the car is waiting to be scheduled
-    boolean waiting;
+    private boolean waiting;
 
     public SimulationRoadCar(int carId, int speed, int planTime, int position, TurnPath turnPath, int currentPathIndex, int startTime, boolean waiting) {
         this.carId = carId;
@@ -29,11 +29,26 @@ class SimulationRoadCar {
     }
 
     SimulationRoadCar(int carId, int speed, int planTime, TurnPath turnPath, int startTime) {
-        this(carId, speed, planTime, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, false);
+        this(carId, speed, planTime, UNINITILIAZED_POSITION, turnPath, INITIAL_PATH_INDEX, startTime, true);
     }
 
     public int getPosition() {
         return position;
+    }
+
+    public boolean isWaiting() {
+        return waiting;
+    }
+
+    void setWaitingWhenSchedulingRoad() {
+        if (waiting) throw new IllegalStateException("Already waiting");
+        waiting = true;
+    }
+
+    void scheduleToPositionWhenSchedulingRoad(int newPosition) {
+        if (waiting) throw new IllegalStateException("Already waiting");
+        position = newPosition;
+        // Already assigned to this value: waiting = false;
     }
 
     void scheduleToPosition(int newPosition) {

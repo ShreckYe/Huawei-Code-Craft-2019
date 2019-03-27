@@ -41,7 +41,7 @@ class SimulationVisualizationUtils {
             SimulationRoadCar currentCar = carIterator.hasNext() ? carIterator.next() : null;
             for (int i = 0; i < road.length; i++) {
                 if (currentCar != null && i == currentCar.getPosition()) {
-                    if (currentCar.waiting) {
+                    if (currentCar.isWaiting()) {
                         System.out.print('w');
                         waitingCars.add(currentCar);
                     } else

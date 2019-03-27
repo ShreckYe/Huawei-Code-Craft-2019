@@ -40,7 +40,7 @@ class SimulationRoad {
     Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>> getPriorityOneWaitingCarChannelPair() {
         List<Pair<SimulationRoadCar, ArrayDeque<SimulationRoadCar>>> firstRowWaitingCarChannelPairs = channels.stream().map(channel -> {
             SimulationRoadCar first = channel.peekFirst();
-            return first != null && first.waiting ? new Pair<>(first, channel) : null;
+            return first != null && first.isWaiting() ? new Pair<>(first, channel) : null;
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
         if (firstRowWaitingCarChannelPairs.isEmpty())
