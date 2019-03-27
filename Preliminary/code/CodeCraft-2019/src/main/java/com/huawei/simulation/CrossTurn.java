@@ -3,7 +3,8 @@ package com.huawei.simulation;
 import com.huawei.common.MathUtils;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public enum CrossTurn {
     // Ordered by priority
@@ -31,7 +32,7 @@ public enum CrossTurn {
     }
 
     // This method should be package level
-    Stream<CrossTurn> getAllWithHigherPriority() {
-        return Arrays.stream(values()).limit(priority);
+    List<CrossTurn> getAllWithHigherPriority() {
+        return Arrays.stream(values()).limit(priority).collect(Collectors.toList());
     }
 }

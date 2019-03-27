@@ -1,4 +1,4 @@
-package com.huawei.test;
+package com.huawei;
 
 import com.huawei.data.Answer;
 import com.huawei.data.Car;
@@ -40,6 +40,8 @@ public class SimulateAnswer {
             System.out.println("startTime - planTime: " + (singleSolution.startTime - singleSolution.getCar().getPlanTime()));
 
         FullSimulationResult fullSimulationResult = simulationGraph.simulateAeap(singleSolutions);
-        System.out.println("Status code: " + fullSimulationResult.getStatusCode() + ", total travel time: " + fullSimulationResult.getTotalTravelTime() + ", system schedule time: " + fullSimulationResult.getSystemScheduleTime());
+        System.out.println("Status code: " + fullSimulationResult.getStatusCode() +
+                ", system schedule time: " + fullSimulationResult.getSystemScheduleTime() +
+                ", total travel time: " + fullSimulationResult.getTotalTravelTime());
     }
 }

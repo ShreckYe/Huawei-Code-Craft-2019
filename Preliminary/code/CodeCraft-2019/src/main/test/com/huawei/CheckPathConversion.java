@@ -1,4 +1,4 @@
-package com.huawei.test;
+package com.huawei;
 
 import com.huawei.data.*;
 import com.huawei.simulation.TrafficSimulationGraph;
