@@ -266,12 +266,12 @@ public class TrafficSimulationGraph {
                                     }
                                     frontCar = car;
                                 }
-                            } while (false);
+                            } while (false/*true*/);
                         }
 
                         if (existsCrossCarScheduled)
                             existsCarScheduled = true;
-                    } while (false);
+                    } while (false/*existsCrossCarScheduled*/);
                 }
             } while (existsCarScheduled);
 
