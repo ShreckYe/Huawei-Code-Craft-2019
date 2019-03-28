@@ -79,27 +79,6 @@ public class TrafficSimulationGraph {
                 channel.clear();
     }
 
-    private static void scheduleToRoadFrontAndFollowing(SimulationRoadCar p1wCar, ArrayDeque<SimulationRoadCar> channel, SimulationRoad road, int newPosition) {
-        p1wCar.scheduleToPosition(newPosition);
-        //existsCrossCarScheduled = true;
-
-        // Scheduling following cars, code copied from above and adapted
-        Iterator<SimulationRoadCar> followingCars = channel.iterator();
-        followingCars.next();
-        SimulationRoadCar frontCar = p1wCar;
-        while (followingCars.hasNext()) {
-            SimulationRoadCar car = followingCars.next();
-            if (car.isWaiting()) {
-                int maxNewPosition = car.getPosition() + min(road.speed, car.speed);
-                car.scheduleToPosition(min(maxNewPosition, frontCar.getPosition() - 1));
-                //existsCrossCarScheduled = true;
-
-                frontCar = car;
-            } else
-                break;
-        }
-    }
-
     private enum ScheduleToNewRoadResult {SUCCESS, FRONT_CAR_WAITING, NO_MORE_SPACE}
 
     private static ScheduleToNewRoadResult scheduleToNewRoad(SimulationRoadCar p1wCar, SimulationRoad newRoad, int maxNewPosition) {
@@ -201,20 +180,9 @@ public class TrafficSimulationGraph {
                                 SimulationRoadCar p1wCar = p1wCarChannelPair.getFirst();
                                 ArrayDeque<SimulationRoadCar> p1wChannel = p1wCarChannelPair.getSecond();
 
-                                if (p1wCar.isArriving()) {
-                                    // Arrives at destination
-                                    p1wChannel.removeFirst();
-                                    roadCars.remove(p1wCar.carId);
-                                    // Missed this!!!
-                                    existsCrossCarScheduled = true;
-                                    int arriveTime = time /*+ 1*/;
-                                    totalTravelTime += arriveTime - p1wCar.planTime;
-                                    carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, arriveTime, p1wCar.turnPath, null, null));
-                                    continue;
-                                }
+
                                 CrossTurn turn = p1wCar.getCurrentTurn();
                                 int directionOut = getDirectionOut(roadAndDirection.direction, turn);
-
                                 // Check if there are cars with higher turn priority
                                 if (turn.getAllWithHigherPriority().stream().anyMatch(higherPriorityTurn -> {
                                     int higherPriorityInDirection = getDirectionIn(directionOut, higherPriorityTurn);
@@ -229,34 +197,80 @@ public class TrafficSimulationGraph {
 
 
                                 // Finally we can try to schedule this car
-                                SimulationRoad roadOut = cross.roadsOut[directionOut];
-                                int s1P1 = road.length - p1wCar.getPosition(),
-                                        v1 = min(road.speed, p1wCar.speed),
-                                        v2 = min(roadOut.speed, p1wCar.speed);
-                                //boolean b1 = s1P1 > v1, b2 = s1P1 > v2;
-                                if (s1P1 > v1) {
-                                    scheduleToRoadFrontAndFollowing(p1wCar, p1wChannel, road, p1wCar.getPosition() + v1);
+                                boolean skipFirstInChannel;
+                                if (p1wCar.isArriving()) {
+                                    // Arrives at destination
+                                    p1wChannel.removeFirst();
+                                    roadCars.remove(p1wCar.carId);
+                                    // Missed this!!!
                                     existsCrossCarScheduled = true;
-                                } else if (s1P1 > v2) {
-                                    scheduleToRoadFrontAndFollowing(p1wCar, p1wChannel, road, road.length - 1);
-                                    existsCrossCarScheduled = true;
+                                    //int arriveTime = time + 1;
+                                    totalTravelTime += time - p1wCar.planTime;
+                                    carSimulationResults.add(new CarSimulationResult(p1wCar.carId, p1wCar.startTime, time, p1wCar.turnPath, null, null));
+                                    skipFirstInChannel = false;
                                 } else {
-                                    // Schedule to next road
-                                    int maxNewPosition = v2 - s1P1;
-                                    ScheduleToNewRoadResult result = scheduleToNewRoad(p1wCar, roadOut, maxNewPosition);
-                                    if (result == ScheduleToNewRoadResult.SUCCESS) {
-                                        p1wChannel.removeFirst();
+                                    SimulationRoad roadOut = cross.roadsOut[directionOut];
+                                    int s1P1 = road.length - p1wCar.getPosition(),
+                                            v1 = min(road.speed, p1wCar.speed),
+                                            v2 = min(roadOut.speed, p1wCar.speed);
+                                    //boolean b1 = s1P1 > v1, b2 = s1P1 > v2;
+                                    if (s1P1 > v1) {
+                                        p1wCar.scheduleToPosition(p1wCar.getPosition() + v1);
                                         existsCrossCarScheduled = true;
-                                    } else if (result == ScheduleToNewRoadResult.NO_MORE_SPACE) {
-                                        scheduleToRoadFrontAndFollowing(p1wCar, p1wChannel, road, road.length - 1);
+                                        skipFirstInChannel = true;
+                                    } else if (s1P1 > v2) {
+                                        p1wCar.scheduleToPosition(road.length - 1);
                                         existsCrossCarScheduled = true;
-                                    } else /*if (result == ScheduleToNewRoadResult.FRONT_CAR_WAITING)*/
-                                        break;
+                                        skipFirstInChannel = true;
+                                    } else {
+                                        // Schedule to next road
+                                        int maxNewPosition = v2 - s1P1;
+                                        ScheduleToNewRoadResult result = scheduleToNewRoad(p1wCar, roadOut, maxNewPosition);
+                                        if (result == ScheduleToNewRoadResult.SUCCESS) {
+                                            p1wChannel.removeFirst();
+                                            existsCrossCarScheduled = true;
+                                            skipFirstInChannel = false;
+                                        } else if (result == ScheduleToNewRoadResult.NO_MORE_SPACE) {
+                                            p1wCar.scheduleToPosition(road.length - 1);
+                                            existsCrossCarScheduled = true;
+                                            skipFirstInChannel = true;
+                                        } else /*if (result == ScheduleToNewRoadResult.FRONT_CAR_WAITING)*/
+                                            break;
+                                    }
                                 }
-                            } while (true);
+
+                                // Schedule the corresponding channel
+                                Iterator<SimulationRoadCar> channelCars = p1wChannel.iterator();
+                                SimulationRoadCar frontCar;
+                                if (skipFirstInChannel) {
+                                    channelCars.next();
+                                    frontCar = p1wCar;
+                                } else
+                                    frontCar = null;
+                                while (channelCars.hasNext()) {
+                                    SimulationRoadCar car = channelCars.next();
+                                    if (!car.isWaiting())
+                                        break;
+
+                                    int maxNewPosition = car.getPosition() + min(road.speed, car.speed);
+                                    if (frontCar == null) {
+                                        if (maxNewPosition < road.length) {
+                                            car.scheduleToPosition(maxNewPosition);
+                                            existsCrossCarScheduled = true;
+                                        } else
+                                            break;
+                                    } else {
+                                        // The front car can never be waiting
+                                        car.scheduleToPosition(min(maxNewPosition, frontCar.getPosition() - 1));
+                                        existsCrossCarScheduled = true;
+                                    }
+                                    frontCar = car;
+                                }
+                            } while (false);
                         }
 
-                        if (existsCrossCarScheduled) existsCarScheduled = true;
+                        if (existsCrossCarScheduled)
+                            existsCarScheduled = true;
                     } while (false);
                 }
             } while (existsCarScheduled);
