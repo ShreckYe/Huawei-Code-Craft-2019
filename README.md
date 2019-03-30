@@ -3,7 +3,7 @@ Java code for the Huawei Code Craft 2019 competition
 
 # Apache License
 ```
-   Copyright Yongshun Ye, Huiqi Xue, Youkai Wu
+   Copyright Yongshun Ye, Huiqi Xue
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
