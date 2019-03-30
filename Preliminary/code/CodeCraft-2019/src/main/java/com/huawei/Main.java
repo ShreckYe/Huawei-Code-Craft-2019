@@ -42,6 +42,7 @@ public class Main {
         List<Cross> crosses = DataIoUtils.readCrosses(crossPath);
 
         // TODO: calc
+        long time = System.currentTimeMillis();
         TrafficSimulationGraph simulationGraph = new TrafficSimulationGraph(roads, crosses);
 
         List<Pair<Car, IdealPathResult>> carIdealPathResults = new ArrayList<>(cars.size());
@@ -52,6 +53,7 @@ public class Main {
 
             carIdealPathResults.add(new Pair<>(car, new IdealPathResult(car.getPlanTime() + shortestPath.getWeight(), path)));
         }
+        System.out.println("Dijkstra took: " + (System.currentTimeMillis() - time));
         /*List<Pair<Car, TurnPath>> carPathCrossTurns = simulationGraph.convertCarPathToCarTurnPath(carPathPairs);
         FullSimulationResult simulationResult = simulationGraph.simulateAeapWithPlanTimes(carPathCrossTurns);
         switch (simulationResult.getStatusCode()) {
@@ -69,7 +71,7 @@ public class Main {
         Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
                 .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));*/
         List<CarStartTimeTurnPathSingleSolution> carStartTimeTurnPaths =
-                InitialSolutions.determineSuccessfulStartTimesByRunningOneAtEachTime(simulationGraph, carIdealPathResults);
+                InitialSolutions.determineSuccessfulStartTimesByDivideAndMerge(simulationGraph, carIdealPathResults, Integer.MAX_VALUE);
 
         System.out.println(simulationGraph.simulateAeap(carStartTimeTurnPaths).getSystemScheduleTime());
 
@@ -80,6 +82,7 @@ public class Main {
                     simulationGraph.convertTurnPathToPath(car.getFrom(), carStartTimeTurnPath.turnPath));
         }).collect(Collectors.toList());
 
+        System.out.println("Took: " + (System.currentTimeMillis() - time));
 
         // TODO: write answer.txt
         logger.info("Start write output file");

@@ -282,7 +282,7 @@ public class TrafficSimulationGraph {
         } while (existsCarScheduled);
 
         if (roadCars.values().stream().anyMatch(SimulationRoadCar::isWaiting)) {
-            // TODO: remove debug code
+            /*// TODO: remove debug code
             System.out.println("Deadlock cars: \ncarId currentPathIndex position roadId reverseDirection channelNumber");
             roadCars.values().stream().filter(SimulationRoadCar::isWaiting).forEach(car -> {
                 Pair<SimulationRoad, IntObjPair<ArrayDeque<SimulationRoadCar>>> roadChannelPair = roads.values().stream()
@@ -291,7 +291,7 @@ public class TrafficSimulationGraph {
                 System.out.println(car.carId + " " + car.currentPathIndex + " " + car.getPosition() + " " + roadChannelPair.getFirst().directedRoadId.getRoadId() + " " + roadChannelPair.getFirst().directedRoadId.isReverseDirection() + " " + roadChannelPair.getSecond().getFirst());
             });
             System.out.println("\n\nAll roads:");
-            SimulationVisualizationUtils.printRoads(roads.values());
+            SimulationVisualizationUtils.printRoads(roads.values());*/
             clearSimulation();
             return FullSimulationResult.newDeadlockInstance(time, simulationStats.totalTravelTime, carSimulationResults);
         }

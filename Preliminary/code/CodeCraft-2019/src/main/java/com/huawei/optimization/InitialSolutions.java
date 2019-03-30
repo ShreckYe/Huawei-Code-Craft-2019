@@ -88,13 +88,14 @@ public class InitialSolutions {
     }
 
     public static List<CarStartTimeTurnPathSingleSolution> determineSuccessfulStartTimesByDivideAndMerge
-            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults) {
+            (TrafficSimulationGraph simulationGraph, List<Pair<Car, IdealPathResult>> carIdealPathResults, int mergeBinarySearchDepth) {
         List<CarStartTimeTurnPathSingleSolution> singleSolutions = getSingleSolutionsOrderedDescentByIdealArriveTime(simulationGraph, carIdealPathResults);
 
-        return divideAndMerge(simulationGraph, singleSolutions).singleSolutions;
+        return divideAndMerge(simulationGraph, singleSolutions, mergeBinarySearchDepth).singleSolutions;
     }
 
-    private static CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult divideAndMerge(TrafficSimulationGraph simulationGraph, List<CarStartTimeTurnPathSingleSolution> singleSolutions) {
+    private static CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult divideAndMerge(
+            TrafficSimulationGraph simulationGraph, List<CarStartTimeTurnPathSingleSolution> singleSolutions, int mergeBinarySearchDepth) {
         int size = singleSolutions.size();
 
         if (size == 0)
@@ -107,16 +108,17 @@ public class InitialSolutions {
         }
 
         int halfSize = MathUtils.ceilDivBy2(size);
-        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult firstHalf = divideAndMerge(simulationGraph, singleSolutions.subList(0, halfSize)),
-                secondHalf = divideAndMerge(simulationGraph, singleSolutions.subList(halfSize, size));
+        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult firstHalf = divideAndMerge(simulationGraph, singleSolutions.subList(0, halfSize), mergeBinarySearchDepth),
+                secondHalf = divideAndMerge(simulationGraph, singleSolutions.subList(halfSize, size),mergeBinarySearchDepth);
 
-        return mergeCarPathsAndDetermineStartTimes(simulationGraph, firstHalf, secondHalf);
+        return mergeCarPathsAndDetermineStartTimes(simulationGraph, firstHalf, secondHalf,mergeBinarySearchDepth);
     }
 
     private static CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult
     mergeCarPathsAndDetermineStartTimes(TrafficSimulationGraph simulationGraph,
                                         CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult earlierSolution,
-                                        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult laterSolution) {
+                                        CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult laterSolution,
+                                        int mergeBinarySearchDepth) {
         List<CarStartTimeTurnPathSingleSolution> singleSolutions = ListUtils.concatLists(earlierSolution.singleSolutions, laterSolution.singleSolutions);
 
         // We may be lucky to directly merge two without shifting
@@ -130,7 +132,7 @@ public class InitialSolutions {
         int low = 0,
                 high = Math.max(earlierSolution.systemScheduleTime - laterSolution.minStartTime, 0);
         int lastSuccessfulSystemScheduleTime = -1;
-        while (low < high) {
+        for (; low < high && mergeBinarySearchDepth > 0; mergeBinarySearchDepth--) {
             int mid = (low + high) >> 1;
 
             laterSolution.shiftStartTimesBy(mid);
@@ -147,7 +149,7 @@ public class InitialSolutions {
             else
                 throw new AssertionError();
         }
-        if (high != low) throw new AssertionError();
+        //if (high != low) throw new AssertionError();
         laterSolution.shiftStartTimesBy(high);
 
         CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult solution = new CarStartTimeTurnPathSingleSolutionsSolutionWithSimulationResult(singleSolutions,
