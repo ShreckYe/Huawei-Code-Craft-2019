@@ -65,7 +65,7 @@ class SimulationRoadCar {
         }
     }
 
-    boolean isArriving() {
+    boolean isOnLastRoad() {
         return currentPathIndex == turnPath.crossTurns.length;
     }
 

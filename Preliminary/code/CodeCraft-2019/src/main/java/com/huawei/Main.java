@@ -69,7 +69,7 @@ public class Main {
         Map<Integer, Integer> startTimes = simulationResult.getCarSimulationResults().stream()
                 .collect(Collectors.toMap(CarSimulationResult::getCarId, CarSimulationResult::getStartTime));*/
         List<CarStartTimeTurnPathSingleSolution> carStartTimeTurnPaths =
-                InitialSolutions.determineSuccessfulStartTimesByDivideAndMerge(simulationGraph, carIdealPathResults);
+                InitialSolutions.determineSuccessfulStartTimesByRunningOneAtEachTime(simulationGraph, carIdealPathResults);
 
         System.out.println(simulationGraph.simulateAeap(carStartTimeTurnPaths).getSystemScheduleTime());
 
